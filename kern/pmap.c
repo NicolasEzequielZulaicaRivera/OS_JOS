@@ -157,8 +157,6 @@ mem_init(void)
 	pages = boot_alloc( sizeof( struct PageInfo ) * npages );
 	memset( pages, 0, sizeof( struct PageInfo ) * npages );
 
-	panic("mem_init: alloccated pages\n");
-
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -262,10 +260,22 @@ page_init(void)
 	// free pages!
 	size_t i;
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+
+		if(
+			i==0 || // 1 - Physical page 0
+			( IOPHYSMEM <= i*sizeof(struct PageInfo) && i*sizeof(struct PageInfo) < EXTPHYSMEM  ) || // 3 - IO hole
+			( EXTPHYSMEM <= i*sizeof(struct PageInfo) && true )	// 4 - Kernel Physical memory
+		){
+			pages[i].pp_ref = 1;
+		}else{
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
+
+	cprintf("np %u bsnp %u  ",npages,npages_basemem);
+	panic("mem_init: alloccated pages\n");
 }
 
 //
