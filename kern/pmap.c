@@ -106,7 +106,13 @@ boot_alloc(uint32_t n)
 	//
 	// LAB 2: Your code here.
 
-	return NULL;
+	void * lastfree = nextfree;
+	if( n>0 ) {
+		nextfree = ROUNDUP( nextfree + n, PGSIZE );
+		if( nextfree >= npages * PGSIZE ) panic();
+	}
+
+	return lastfree;
 }
 
 // Set up a two-level page table:
