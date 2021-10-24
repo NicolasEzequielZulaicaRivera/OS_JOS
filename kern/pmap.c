@@ -106,13 +106,11 @@ boot_alloc(uint32_t n)
 	//
 	// LAB 2: Your code here.
 
-	void * lastfree = nextfree;
-	if( n>0 ) {
-		nextfree = ROUNDUP( nextfree + n, PGSIZE );
-		if( nextfree >= npages * PGSIZE ) panic();
-	}
+	result = nextfree;
+	nextfree = ROUNDUP( nextfree + n, PGSIZE );
+	if( (uint32_t) nextfree > npages * PGSIZE + KERNBASE ) panic("boot_alloc error");
 
-	return lastfree;
+	return result;
 }
 
 // Set up a two-level page table:
@@ -132,9 +130,6 @@ mem_init(void)
 
 	// Find out how much memory the machine has (npages & npages_basemem).
 	i386_detect_memory();
-
-	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -159,7 +154,10 @@ mem_init(void)
 	// memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
+	pages = boot_alloc( sizeof( struct PageInfo ) * npages );
+	memset( pages, 0, sizeof( struct PageInfo ) * npages );
 
+	panic("mem_init: alloccated pages\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
