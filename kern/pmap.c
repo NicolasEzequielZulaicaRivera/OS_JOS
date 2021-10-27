@@ -427,7 +427,24 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
+	pte_t *pg_table_entry = pgdir_walk(pgdir, va, 1);
+	if (pg_table_entry == NULL) {
+		return -E_NO_MEM;
+	}
+
+	// If there is already a page mapped, then remove it
+	if ((*pg_table_entry & PTE_P) == PTE_P) {
+		// Page remove also invalidates the TLB
+		page_remove(pgdir, va);
+	}
+
+	// Set the first 20 with the direction
+	// and the last 12 with the flags
+	*pg_table_entry = page2pa(pp) | perm | PTE_P;
+
+	// TODO pp_ref should increment always, except from the corner case
+	pp->pp_ref += 1;
+
 	return 0;
 }
 
