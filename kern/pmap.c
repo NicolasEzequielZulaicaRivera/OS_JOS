@@ -104,11 +104,16 @@ boot_alloc(uint32_t n)
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
 
-	result = nextfree; // saves the virtual address of the allocated memory
-	nextfree = ROUNDUP( nextfree + n, PGSIZE ); // updates the virtual address of the next free memory
-	if( PADDR(nextfree) > npages * PGSIZE ) // checks if we're out of memory, if so, panic
-		panic("boot_alloc error"); 			// does so by comparing the pyhsical address of the next free memory to the total number of pages
-								// multiplied by the page size
+	result = nextfree;  // saves the virtual address of the allocated memory
+	nextfree = ROUNDUP(
+	        nextfree + n,
+	        PGSIZE);  // updates the virtual address of the next free memory
+	if (PADDR(nextfree) >
+	    npages * PGSIZE)  // checks if we're out of memory, if so, panic
+		panic("boot_alloc error");  // does so by comparing the pyhsical
+		                            // address of the next free memory
+		                            // to the total number of pages multiplied
+		                            // by the page size
 
 	return result;
 }
@@ -153,8 +158,8 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use
 	// memset
 	// to initialize all fields of each struct PageInfo to 0.
-	pages = boot_alloc( sizeof( struct PageInfo ) * npages );
-	memset( pages, 0, sizeof( struct PageInfo ) * npages );
+	pages = boot_alloc(sizeof(struct PageInfo) * npages);
+	memset(pages, 0, sizeof(struct PageInfo) * npages);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -258,17 +263,17 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	const uint32_t KERNEND = PADDR( boot_alloc(0) ); // PADDR of last allocated memory
+	const uint32_t KERNEND =
+	        PADDR(boot_alloc(0));  // PADDR of last allocated memory
 
 	for (i = 0; i < npages; i++) {
-
 		const uint32_t PAGE_I = i * PGSIZE;
 
-		if (
-			! (( PAGE_I == 0 ) || // 1 - Physical page 0
-			( IOPHYSMEM <= PAGE_I && PAGE_I < EXTPHYSMEM  ) || // 3 - IO hole
-			( EXTPHYSMEM <= PAGE_I && PAGE_I < KERNEND ))	// 4 - Kernel Physical memory
-		){
+		if (!((PAGE_I == 0) ||  // 1 - Physical page 0
+		      (IOPHYSMEM <= PAGE_I && PAGE_I < EXTPHYSMEM) ||  // 3 - IO hole
+		      (EXTPHYSMEM <= PAGE_I &&
+		       PAGE_I < KERNEND))  // 4 - Kernel Physical memory
+		) {
 			pages[i].pp_link = page_free_list;
 			page_free_list = &pages[i];
 		}
@@ -290,8 +295,7 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
-	// Fill this function in
-	if( page_free_list == NULL ){
+	if (page_free_list == NULL) {
 		return NULL;
 	}
 
@@ -299,8 +303,8 @@ page_alloc(int alloc_flags)
 	page_free_list = page->pp_link;
 	page->pp_link = NULL;
 
-	if( alloc_flags & ALLOC_ZERO ){
-		memset( page2kva(page), 0, PGSIZE );
+	if (alloc_flags & ALLOC_ZERO) {
+		memset(page2kva(page), 0, PGSIZE);
 	}
 	return page;
 }
@@ -315,7 +319,7 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
-	if( pp->pp_ref != 0 || pp->pp_link != NULL ){
+	if (pp->pp_ref != 0 || pp->pp_link != NULL) {
 		panic("cant free page");
 	}
 	pp->pp_link = page_free_list;
@@ -359,21 +363,23 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	pde_t * const pde = pgdir + PDX(va); // Pointer to Page Directory Entry
+	pde_t *const pde = pgdir + PDX(va);  // Pointer to Page Directory Entry
 
-	if( ! *pde ){ // If PD Entry is NULL no page table exists
-		if( ! create ){
-			return NULL; // Return NULL if create is false
+	if (!*pde) {  // If PD Entry is NULL no page table exists
+		if (!create) {
+			return NULL;  // Return NULL if create is false
 		}
-		struct PageInfo * page = page_alloc(1); // Allocate a new page
-		if( page == NULL ){
-			return NULL; // Return NULL if allocation failed
+		struct PageInfo *page = page_alloc(1);  // Allocate a new page
+		if (page == NULL) {
+			return NULL;  // Return NULL if allocation failed
 		}
-		*pde = page2pa(page); // Set PD Entry to physical address of new page
-		page->pp_ref++; // Increment reference count of new page	
+		*pde = page2pa(
+		        page);   // Set PD Entry to physical address of new page
+		page->pp_ref++;  // Increment reference count of new page
 	}
-	// PTE_ADDR return the address of the page table 
-	return KADDR( PTE_ADDR(*pde) ) + PTX(va); // Get physical address of page table and add page table index
+	// PTE_ADDR return the address of the page table
+	return KADDR(PTE_ADDR(*pde)) +
+	       PTX(va);  // Get physical address of page table and add page table index
 }
 
 //
