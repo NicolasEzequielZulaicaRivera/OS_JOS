@@ -112,8 +112,8 @@ boot_alloc(uint32_t n)
 	    npages * PGSIZE)  // checks if we're out of memory, if so, panic
 		panic("boot_alloc error");  // does so by comparing the pyhsical
 		                            // address of the next free memory
-		                            // to the total number of pages multiplied
-		                            // by the page size
+		                            // to the total number of pages
+		                            // multiplied by the page size
 
 	return result;
 }
@@ -320,7 +320,7 @@ page_free(struct PageInfo *pp)
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
 	if (pp->pp_ref != 0 || pp->pp_link != NULL) {
-		panic("cant free page");
+		panic("can't free page");
 	}
 	pp->pp_link = page_free_list;
 	page_free_list = pp;
