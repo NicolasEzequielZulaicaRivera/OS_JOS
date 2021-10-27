@@ -103,13 +103,12 @@ boot_alloc(uint32_t n)
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	//
-	// LAB 2: Your code here.
 
 	result = nextfree; // saves the virtual address of the allocated memory
 	nextfree = ROUNDUP( nextfree + n, PGSIZE ); // updates the virtual address of the next free memory
 	if( PADDR(nextfree) > npages * PGSIZE ) // checks if we're out of memory, if so, panic
-		panic("boot_alloc error"); 			// does so by comparing the pyhsical address of the next free memory to the total number of pages	
+		panic("boot_alloc error"); 			// does so by comparing the pyhsical address of the next free memory to the total number of pages
+								// multiplied by the page size
 
 	return result;
 }
@@ -154,7 +153,6 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use
 	// memset
 	// to initialize all fields of each struct PageInfo to 0.
-	// Your code goes here:
 	pages = boot_alloc( sizeof( struct PageInfo ) * npages );
 	memset( pages, 0, sizeof( struct PageInfo ) * npages );
 
@@ -260,20 +258,17 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	const uint32_t KERNEND = PADDR( boot_alloc(0) ); // PADDR of last allocated memory, boot_alloc wont be called again
+	const uint32_t KERNEND = PADDR( boot_alloc(0) ); // PADDR of last allocated memory
 
 	for (i = 0; i < npages; i++) {
 
 		const uint32_t PAGE_I = i * PGSIZE;
 
-		if(
-			PAGE_I == 0 || // 1 - Physical page 0
+		if (
+			! (( PAGE_I == 0 ) || // 1 - Physical page 0
 			( IOPHYSMEM <= PAGE_I && PAGE_I < EXTPHYSMEM  ) || // 3 - IO hole
-			( EXTPHYSMEM <= PAGE_I && PAGE_I < KERNEND )	// 4 - Kernel Physical memory
+			( EXTPHYSMEM <= PAGE_I && PAGE_I < KERNEND ))	// 4 - Kernel Physical memory
 		){
-			pages[i].pp_link = NULL;
-		}else{
-			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;
 			page_free_list = &pages[i];
 		}

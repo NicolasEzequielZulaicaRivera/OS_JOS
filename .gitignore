@@ -1,3 +1,7 @@
+Notas.odt
+.gitignore
+./idea/*
+.gitignore
 /obj
 /jos.in
 /jos.log
