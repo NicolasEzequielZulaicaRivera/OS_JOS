@@ -362,21 +362,22 @@ page_decref(struct PageInfo *pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
 	pde_t *const pde = pgdir + PDX(va);  // Pointer to Page Directory Entry
 
-	if (!*pde) {  // If PD Entry is NULL no page table exists
-		if (!create) {
-			return NULL;  // Return NULL if create is false
+	if ((*pde & PTE_P) != PTE_P))
+		{  // If PD Entry isn't present, no page table exists
+			if (!create) {
+				return NULL;  // Return NULL if create is false
+			}
+			struct PageInfo *page =
+			        page_alloc(1);  // Allocate a new page
+			if (page == NULL) {
+				return NULL;  // Return NULL if allocation failed
+			}
+			*pde = page2pa(
+			        page);  // Set PD Entry to physical address of new page
+			page->pp_ref++;  // Increment reference count of new page
 		}
-		struct PageInfo *page = page_alloc(1);  // Allocate a new page
-		if (page == NULL) {
-			return NULL;  // Return NULL if allocation failed
-		}
-		*pde = page2pa(
-		        page);   // Set PD Entry to physical address of new page
-		page->pp_ref++;  // Increment reference count of new page
-	}
 	// PTE_ADDR return the address of the page table
 	return KADDR(PTE_ADDR(*pde)) +
 	       PTX(va);  // Get physical address of page table and add page table index
