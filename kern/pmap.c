@@ -364,20 +364,19 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	pde_t *const pde = pgdir + PDX(va);  // Pointer to Page Directory Entry
 
-	if ((*pde & PTE_P) != PTE_P))
-		{  // If PD Entry isn't present, no page table exists
-			if (!create) {
-				return NULL;  // Return NULL if create is false
-			}
-			struct PageInfo *page =
-			        page_alloc(1);  // Allocate a new page
-			if (page == NULL) {
-				return NULL;  // Return NULL if allocation failed
-			}
-			*pde = page2pa(
-			        page);  // Set PD Entry to physical address of new page
-			page->pp_ref++;  // Increment reference count of new page
+	// If PD Entry isn't present, no page table exists
+	if ((*pde & PTE_P) != PTE_P) {
+		if (!create) {
+			return NULL;  // Return NULL if create is false
 		}
+		struct PageInfo *page = page_alloc(1);  // Allocate a new page
+		if (page == NULL) {
+			return NULL;  // Return NULL if allocation failed
+		}
+		*pde = page2pa(
+		        page);   // Set PD Entry to physical address of new page
+		page->pp_ref++;  // Increment reference count of new page
+	}
 	// PTE_ADDR return the address of the page table
 	return KADDR(PTE_ADDR(*pde)) +
 	       PTX(va);  // Get physical address of page table and add page table index
@@ -428,19 +427,18 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	pte_t *pg_table_entry = pgdir_walk(pgdir, va, 1);
-	if (pg_table_entry == NULL) {
+	pte_t *pte = pgdir_walk(pgdir, va, 1);
+	if (pte == NULL) {
 		return -E_NO_MEM;
 	}
-
 
 	int was_present = 0;
 	physaddr_t previous_dir;
 	// If there is already a page mapped, then remove it
-	if ((*pg_table_entry & PTE_P) == PTE_P) {
+	if ((*pte & PTE_P) == PTE_P) {
 		// Fill the information needed to check the corner case
 		was_present = 1;
-		previous_dir = PTE_ADDR(*pg_table_entry);
+		previous_dir = PTE_ADDR(*pte);
 
 
 		// Page remove also invalidates the TLB
@@ -449,7 +447,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 	// Set the first 20 with the direction
 	// and the last 12 with the flags
-	*pg_table_entry = page2pa(pp) | perm | PTE_P;
+	*pte = page2pa(pp) | perm | PTE_P;
 
 	// pp_ref shall increment always, except from the corner case
 	// comparison returns 0 only on corner case
@@ -472,8 +470,20 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
-	return NULL;
+	// Do not create the page if it didn't exist
+	pte_t *pte = pgdir_walk(pgdir, va, 0);
+
+	// Store the page_table entry if neccesary
+	if (pte_store) {
+		*pte_store = pte;
+	}
+
+	// If there is no page mapped at va
+	if (!pte) {
+		return NULL;
+	}
+
+	return pa2page(PTE_ADDR(pte));
 }
 
 //
