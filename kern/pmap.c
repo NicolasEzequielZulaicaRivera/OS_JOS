@@ -369,12 +369,15 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		if (!create) {
 			return NULL;  // Return NULL if create is false
 		}
-		struct PageInfo *page = page_alloc(1);  // Allocate a new page
+
+		// Allocate a new page and initialize it whit zero
+		struct PageInfo *page = page_alloc(ALLOC_ZERO);
 		if (page == NULL) {
 			return NULL;  // Return NULL if allocation failed
 		}
-		*pde = page2pa(
-		        page);   // Set PD Entry to physical address of new page
+		// Set PD Entry to physical address of new page
+		// Enable all permissions in the page directory entry
+		*pde = page2pa(page) | 0x1ff;
 		page->pp_ref++;  // Increment reference count of new page
 	}
 	// PTE_ADDR return the address of the page table
@@ -439,7 +442,6 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 		// Fill the information needed to check the corner case
 		was_present = 1;
 		previous_dir = PTE_ADDR(*pte);
-
 
 		// Page remove also invalidates the TLB
 		page_remove(pgdir, va);
