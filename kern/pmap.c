@@ -433,8 +433,16 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 		return -E_NO_MEM;
 	}
 
+
+	int was_present = 0;
+	physaddr_t previous_dir;
 	// If there is already a page mapped, then remove it
 	if ((*pg_table_entry & PTE_P) == PTE_P) {
+		// Fill the information needed to check the corner case
+		was_present = 1;
+		previous_dir = PTE_ADDR(*pg_table_entry);
+
+
 		// Page remove also invalidates the TLB
 		page_remove(pgdir, va);
 	}
@@ -443,8 +451,9 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	// and the last 12 with the flags
 	*pg_table_entry = page2pa(pp) | perm | PTE_P;
 
-	// TODO pp_ref should increment always, except from the corner case
-	pp->pp_ref += 1;
+	// pp_ref shall increment always, except from the corner case
+	// comparison returns 0 only on corner case
+	pp->pp_ref += ((was_present != 1) || (previous_dir != page2pa(pp)));
 
 	return 0;
 }
