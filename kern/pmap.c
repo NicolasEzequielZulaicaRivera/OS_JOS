@@ -377,7 +377,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		}
 		// Set PD Entry to physical address of new page
 		// Enable all permissions in the page directory entry
-		*pde = page2pa(page) | 0x1ff;
+		*pde = page2pa(page) | 0x00000fff;
 		page->pp_ref++;  // Increment reference count of new page
 	}
 	// PTE_ADDR return the address of the page table
@@ -451,7 +451,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	// and the last 12 with the flags
 	*pte = page2pa(pp) | perm | PTE_P;
 
-	// pp_ref shall increment always, except from the corner case
+	// pp_ref shall always increment, except from the corner case
 	// comparison returns 0 only on corner case
 	pp->pp_ref += ((was_present != 1) || (previous_dir != page2pa(pp)));
 
