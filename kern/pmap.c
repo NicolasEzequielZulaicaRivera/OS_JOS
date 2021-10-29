@@ -377,7 +377,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		}
 		// Set PD Entry to physical address of new page
 		// Enable all permissions in the page directory entry
-		*pde = page2pa(page) | 0x00000fff;
+		*pde = page2pa(page) | PTE_P | PTE_W | PTE_U | PTE_PWT | PTE_PCD;
 		page->pp_ref++;  // Increment reference count of new page
 	}
 	// PTE_ADDR return the address of the page table
@@ -440,7 +440,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	// If there is already a page mapped, then remove it
 	if ((*pte & PTE_P) == PTE_P) {
 		// Fill the information needed to check the corner case
-		was_present = 1;
+		// was_present = 1;
 		previous_dir = PTE_ADDR(*pte);
 
 		// Page remove also invalidates the TLB
