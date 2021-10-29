@@ -377,7 +377,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		}
 		// Set PD Entry to physical address of new page
 		// Enable all permissions in the page directory entry
-		*pde = page2pa(page) | PTE_P | PTE_W | PTE_U | PTE_PWT | PTE_PCD;
+		*pde = page2pa(page) | PTE_P | PTE_W | PTE_U;
 		page->pp_ref++;  // Increment reference count of new page
 	}
 	// PTE_ADDR return the address of the page table
@@ -435,14 +435,8 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 		return -E_NO_MEM;
 	}
 
-	int was_present = 0;
-	physaddr_t previous_dir;
 	// If there is already a page mapped, then remove it
 	if ((*pte & PTE_P) == PTE_P) {
-		// Fill the information needed to check the corner case
-		// was_present = 1;
-		previous_dir = PTE_ADDR(*pte);
-
 		// Page remove also invalidates the TLB
 		page_remove(pgdir, va);
 	}
@@ -453,7 +447,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 	// pp_ref shall always increment, except from the corner case
 	// comparison returns 0 only on corner case
-	pp->pp_ref += ((was_present != 1) || (previous_dir != page2pa(pp)));
+	pp->pp_ref += 1;
 
 	return 0;
 }
@@ -475,17 +469,17 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	// Do not create the page if it didn't exist
 	pte_t *pte = pgdir_walk(pgdir, va, 0);
 
-	// Store the page_table entry if neccesary
+	// Store the page_table entry if necesary
 	if (pte_store) {
 		*pte_store = pte;
 	}
 
 	// If there is no page mapped at va
-	if (!pte) {
+	if ((!pte) || (*pte & PTE_P) == PTE_P) {
 		return NULL;
 	}
 
-	return pa2page(PTE_ADDR(pte));
+	return pa2page(PTE_ADDR(*pte));
 }
 
 //
