@@ -749,6 +749,47 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 	return PTE_ADDR(p[PTX(va)]);
 }
 
+// Borrar desde aca
+void show_info(struct PageInfo *pp1, struct PageInfo *pp2, void *va, pde_t *pgdir, char *msg){
+	cprintf("\n");
+	cprintf("\n");
+
+	cprintf("------%s--------\n", msg);
+
+	cprintf("PP1\n");
+	cprintf("\tDirección fisica: %p\n", page2pa(pp1));
+	cprintf("\tpp_ref: %u\n", pp1->pp_ref);
+
+	cprintf("PP2\n");
+	cprintf("\tDirección fisica: %p\n", page2pa(pp2));
+	cprintf("\tpp_ref: %u\n", pp2->pp_ref);
+
+
+	cprintf("VA\n");
+	cprintf("\t%p\n", va);
+	cprintf("\tPage directory index: %u\n", PDX(va));
+	cprintf("\tPage table index: %u\n", PTX(va));
+	cprintf("\tOffset: %u\n", PGOFF(va));
+
+	cprintf("Page dir\n");
+	cprintf("\tDireccion: %p\n", pgdir);
+	cprintf("\t*pgdir: %p\n", *pgdir);
+	pde_t* pde = pgdir + PDX(va);
+	cprintf("\tPDE* (pgdir + PDX(va)): %p\n", pde);
+	pte_t* pte =  KADDR(PTE_ADDR(*pde)) + PTX(va);
+	cprintf("\tPTE* (KADDR(PTE_ADDR(*pde)) + PTX(va)): %p\n", pte);
+	cprintf("\tPresent flag en la pte: %u\n", (*pte & PTE_P) == PTE_P);
+	cprintf("\tDirección fisica apuntada por la pte: %p\n", PTE_ADDR(*pte));
+	cprintf("\tCheckva2pa (lo que usan los test): %p", check_va2pa(pgdir, (uintptr_t) va));
+
+
+
+	cprintf("\n");
+	cprintf("\n");
+}
+
+// Hasta aca
+
 
 // check page_insert, page_remove, &c
 static void
@@ -786,7 +827,9 @@ check_page(void)
 
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
+	show_info(pp1, pp2, 0x0, kern_pgdir, "Antes del primer insert");
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
+	show_info(pp1, pp2, 0x0, kern_pgdir, "Despues del primer insert (pp1)");
 	assert(PTE_ADDR(kern_pgdir[0]) == page2pa(pp0));
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
@@ -795,6 +838,7 @@ check_page(void)
 	// should be able to map pp2 at PGSIZE because pp0 is already allocated
 	// for page table
 	assert(page_insert(kern_pgdir, pp2, (void *) PGSIZE, PTE_W) == 0);
+	show_info(pp1, pp2, (void *) PGSIZE, kern_pgdir, "Despues del segundo insert (pp2)");
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
 
