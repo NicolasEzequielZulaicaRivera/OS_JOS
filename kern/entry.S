@@ -62,6 +62,11 @@ entry:
 	orl	$(CR0_PE|CR0_PG|CR0_WP), %eax
 	movl	%eax, %cr0
 
+	# Activate large pages support. page size is increased to 4 MiB
+	movl	%cr4, %eax
+	orl	$(CR4_PSE), %eax
+	movl	%eax, %cr4
+
 	# Now paging is enabled, but we're still running at a low EIP
 	# (why is this okay?).  Jump up above KERNBASE before entering
 	# C code.
