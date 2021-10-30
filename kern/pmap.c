@@ -422,14 +422,14 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	// Fill this function in
 	pte_t *pte;
 	while (size > 0) {
-		pte = pgdir_walk(pgdir, (void *) va, 1);
+		pte = pgdir_walk(pgdir, (void *) va, 1); // Get table entry
 		if (pte == NULL) {
 			panic("pgdir_walk failed");
 		}
-		*pte = pa | perm | PTE_P;
-		va += PGSIZE;
-		pa += PGSIZE;
-		size -= PGSIZE;
+		*pte = pa | perm | PTE_P; // Set entry to physical address and permissions
+		va += PGSIZE; // Increment virtual address
+		pa += PGSIZE; // Increment physical address
+		size -= PGSIZE; // Decrement remaining size
 	}
 }
 
