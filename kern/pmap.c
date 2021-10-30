@@ -778,6 +778,7 @@ void show_info(struct PageInfo *pp1, struct PageInfo *pp2, void *va, pde_t *pgdi
 	cprintf("\tPDE* (pgdir + PDX(va)): %p\n", pde);
 	pte_t* pte =  KADDR(PTE_ADDR(*pde)) + PTX(va);
 	cprintf("\tPTE* (KADDR(PTE_ADDR(*pde)) + PTX(va)): %p\n", pte);
+	cprintf("\tPTE* (según pgdir_walk): %p\n", pgdir_walk(pgdir, va, 0));
 	cprintf("\tPresent flag en la pte: %u\n", (*pte & PTE_P) == PTE_P);
 	cprintf("\tDirección fisica apuntada por la pte: %p\n", PTE_ADDR(*pte));
 	cprintf("\tCheckva2pa (lo que usan los test): %p", check_va2pa(pgdir, (uintptr_t) va));
