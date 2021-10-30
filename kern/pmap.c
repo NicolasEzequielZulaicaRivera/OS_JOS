@@ -365,7 +365,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	pde_t *const pde = pgdir + PDX(va);  // Pointer to Page Directory Entry
 
 	// If PD Entry isn't present, no page table exists
-	if ( !(*pde & PTE_P) ) {
+	if (!(*pde & PTE_P)) {
 		if (!create) {
 			return NULL;  // Return NULL if create is false
 		}
@@ -381,7 +381,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		page->pp_ref++;  // Increment reference count of new page
 	}
 	// PTE_ADDR return the address of the page table
-	return (pte_t *)KADDR(PTE_ADDR(*pde)) +
+	return (pte_t *) KADDR(PTE_ADDR(*pde)) +
 	       PTX(va);  // Get physical address of page table and add page table index
 }
 
@@ -436,7 +436,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	}
 	// Increment reference count of page
 	// Here so that remove -> page_decref -> page_free doesn't happen if same page is reinserted
-	pp->pp_ref ++;
+	pp->pp_ref++;
 
 	// If there is already a page mapped, then remove it
 	if (*pte & PTE_P) {
@@ -474,10 +474,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	}
 
 	// If there is no page mapped at va
-	if (
-		!pte ||
-		!(*pte & PTE_P)
-	) {
+	if (!pte || !(*pte & PTE_P)) {
 		return NULL;
 	}
 
@@ -750,7 +747,6 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 		return ~0;
 	return PTE_ADDR(p[PTX(va)]);
 }
-
 
 
 // check page_insert, page_remove, &c
