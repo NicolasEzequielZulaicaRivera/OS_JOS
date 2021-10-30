@@ -365,13 +365,13 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	pde_t *const pde = pgdir + PDX(va);  // Pointer to Page Directory Entry
 
 	// If PD Entry isn't present, no page table exists
-	if ((*pde & PTE_P) != PTE_P) {
+	if ( !(*pde & PTE_P) ) {
 		if (!create) {
 			return NULL;  // Return NULL if create is false
 		}
 
-		// Allocate a new page and initialize it whit zero
-		struct PageInfo *page = page_alloc(ALLOC_ZERO);
+		// Allocate a new page
+		struct PageInfo *page = page_alloc(1);
 		if (page == NULL) {
 			return NULL;  // Return NULL if allocation failed
 		}
@@ -381,7 +381,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		page->pp_ref++;  // Increment reference count of new page
 	}
 	// PTE_ADDR return the address of the page table
-	return KADDR(PTE_ADDR(*pde)) +
+	return (pte_t *)KADDR(PTE_ADDR(*pde)) +
 	       PTX(va);  // Get physical address of page table and add page table index
 }
 
@@ -436,7 +436,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	}
 
 	// If there is already a page mapped, then remove it
-	if ((*pte & PTE_P) == PTE_P) {
+	if (*pte & PTE_P) {
 		// Page remove also invalidates the TLB
 		page_remove(pgdir, va);
 	}
@@ -447,7 +447,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 
 	// pp_ref shall always increment, except from the corner case
 	// comparison returns 0 only on corner case
-	pp->pp_ref += 1;
+	pp->pp_ref ++;
 
 	return 0;
 }
@@ -475,7 +475,10 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	}
 
 	// If there is no page mapped at va
-	if ((!pte) || (*pte & PTE_P) == PTE_P) {
+	if (
+		!pte ||
+		!(*pte & PTE_P)
+	) {
 		return NULL;
 	}
 
