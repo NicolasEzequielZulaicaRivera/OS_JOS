@@ -371,7 +371,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		}
 
 		// Allocate a new page
-		struct PageInfo *page = page_alloc(1);
+		struct PageInfo *page = page_alloc(ALLOC_ZERO);
 		if (page == NULL) {
 			return NULL;  // Return NULL if allocation failed
 		}
