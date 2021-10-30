@@ -101,9 +101,9 @@ Ahora se buscan los resultados:
 - VA0: 39 -> PA0: 184
 - VA1: 13 -> PA1: 90
 
-La VA0 corresponde al segmento 1 y tiene un offset de 7. Reptiendo las cuentas hechas para la corrida anterior, llegamos a que es necesaria una base de 209 y un límite de 25 (32 - 7 = 25 y 184 + 25 = 209).
+La VA0 corresponde al segmento 1 y tiene un offset de 7. Repitiendo las cuentas hechas para la corrida anterior, llegamos a que es necesaria una base de 209 y un límite de 25 (32 - 7 = 25 y 184 + 25 = 209).
 
-La VA1 pertenece al segmento 0 y su offset es 13. Para que la dirección física correspondiente sea la 90, la base tiene que ser un numero al que sumarle 13 de 90, es decir 77. Para hacer el límite lo más chico posible, se elige un límite de 14.
+La VA1 pertenece al segmento 0 y su offset es 13. Para que la dirección física correspondiente sea la 90, la base tiene que ser un número al que sumarle 13 de 90, es decir 77. Para hacer el límite lo más chico posible, se elige un límite de 14.
 
 ```
 python segmentation.py -a 64 -p 256 -s 105774 -A 39,13 -B 209 -L 25 -b 77 -l 14 -c
@@ -131,11 +131,11 @@ Utilizando un espacio de direcciones virtuales de 5-bits; y un espacio de direcc
 
 ### ¿Cuál es el tamaño (en número de direcciones) de cada espacio (físico y virtual)?
 
-El espacio virtual tendrá un tamaño de 32 direcciones (2^5) y el fisíco tendrá uno de 128 (2^7).
+El espacio virtual tendrá un tamaño de 32 direcciones (2^5) y el físico tendrá uno de 128 (2^7).
 
 ### ¿Es posible configurar la simulación de segmentación para que dos direcciones virtuales se traduzcan en la misma dirección física? Explicar, y de ser posible brindar un ejemplo de corrida de la simulación.
 
-Esto es posible, dado que el hecho de que una dirección fisíca pertenezca a un segmento de memoria no implica que no pueda pertencer también a otro.
+Esto es posible, dado que el hecho de que una dirección física pertenezca a un segmento de memoria no implica que no pueda pertenecer también a otro.
 
 ```
 python segmentation.py -a 32 -p 128 -c -b 0 -l 1 -A 0,31 -B 1
@@ -166,7 +166,7 @@ Si, de hecho es posible tener el 100% de las direcciones virtuales mapeadas de f
 
 Con esta configuración la traducción de cada dirección virtual es ella misma.
 
-Hacer esto es posible dado que las cantidades direcciones y la cantidad de segmentos lo permiten. Si hubiera, por ejemplo 128 direcciones virtuales, 2 direcciones físicas y un segmento esto no se podría, ya que no habria forma de traducir el 90% de ellas de manera valida.
+Hacer esto es posible dado que las cantidades direcciones y la cantidad de segmentos lo permiten. Si hubiera, por ejemplo 128 direcciones virtuales, 2 direcciones físicas y un segmento esto no se podría, ya que no habría forma de traducir el 90% de ellas de manera válida.
 
 ### ¿Es posible que (aproximadamente) el 90% del espacio de direcciones físicas esté mapeado de forma válida? Explicar, y de ser posible, dar una configuración de segmentos que de tal resultado.
 
