@@ -419,17 +419,31 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	// Fill this function in
+	pde_t *pde;
 	pte_t *pte;
 	while (size > 0) {
-		pte = pgdir_walk(pgdir, (void *) va, 1);
-		if (pte == NULL) {
-			panic("pgdir_walk failed");
+		size_t offset = PGSIZE;
+#ifdef TP1_PSE
+		if (size >= PTSIZE && (pa & (PTSIZE - 1)) == 0) {  // LARGE PAGE
+			pde = pgdir + PDX(va);  // Get page directory entry
+			*pde = pa | perm | PTE_P |
+			       PTE_PS;  // Set entry to large page and permissions
+			offset = PTSIZE;  // Set offset to large page size
+		} else                    // SMALL PAGE
+#endif
+		{
+			pte = pgdir_walk(pgdir, (void *) va, 1);  // Get table entry
+			if (pte == NULL) {
+				panic("pgdir_walk failed");
+			}
+			*pte = pa | perm |
+			       PTE_P;  // Set entry to physical address and permissions
 		}
-		*pte = pa | perm | PTE_P;
-		va += PGSIZE;
-		pa += PGSIZE;
-		size -= PGSIZE;
+		va += offset;  // Increment virtual address
+		pa += offset;  // Increment physical address
+		if (size < offset)
+			return;  // Return if size is less than offset. Checked to prevent overflow if not aligned.
+		size -= offset;  // Decrement remaining size
 	}
 }
 
