@@ -36,11 +36,20 @@ Value returned is $1 = (void *) 0xf0113000
 page_alloc
 ----------
 
-...
+### ¿en qué se diferencia page2pa() de page2kva()?
+**page2pa()**: Obtiene la dirección física de un puntero a un struct PageInfo
+
+**page2kva()**: Obtiene la dirección virtual de un puntero a un struct PageInfo
 
 
 map_region_large
 ----------------
 
-...
+### ¿cuánta memoria se ahorró de este modo? (en KiB)
 
+De este modo cada vez que se use una large page se ahorra el espacio que ocupa una *page table*, que son 1024 entradas de 32 bits cada una, es decir 4KiB. 
+Un ejemplo de esto fue eliminó la *entry_pgtable* del Kernel y se la remplazó por el uso de una página grande.
+
+### ¿es una cantidad fija, o depende de la memoria física de la computadora?
+
+Para la arquitectura x86 esto es válido, aunque para otras arquitecturas, por ejemplo de 64 bits podría ser distinto, dado que cambia la cantidad de bits necesarios para guardar una dirección.

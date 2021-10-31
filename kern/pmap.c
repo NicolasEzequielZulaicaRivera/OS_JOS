@@ -424,8 +424,9 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	while (size > 0) {
 		size_t offset = PGSIZE;
 #ifdef TP1_PSE
-		if (size >= PTSIZE && (pa & (PTSIZE - 1)) == 0) {  // LARGE PAGE
-			pde = pgdir + PDX(va);  // Get page directory entry
+		if ((size >= PTSIZE) && ((pa & (PTSIZE - 1)) == 0) &&
+		    ((va & (PTSIZE - 1)) == 0)) {  // LARGE PAGE
+			pde = pgdir + PDX(va);     // Get page directory entry
 			*pde = pa | perm | PTE_P |
 			       PTE_PS;  // Set entry to large page and permissions
 			offset = PTSIZE;  // Set offset to large page size
