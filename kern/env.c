@@ -185,7 +185,20 @@ env_setup_vm(struct Env *e)
 	//	pp_ref for env_free to work correctly.
 	//    - The functions in kern/pmap.h are handy.
 
-	// LAB 3: Your code here.
+	// Set the env_pgdir with the virtual address of the allocated page
+	e->env_pgdir = page2kva(p);
+
+	// The size of the region not copied is the index in the Page Directory Table
+	// multiplied by the size of each of its entries.
+	// So, the size copied is PGSIZE - that
+	size_t size = PGSIZE - PDX(UTOP) * sizeof(pde_t);
+
+	// Copy all the entries above UTOP from the Kernel Page Directory
+	// to the Environment Page Directory
+	memcpy(&(e->env_pgdir[PDX(UTOP)]), &(kern_pgdir[PDX(UTOP)]), size);
+
+	// Increment the page's pp_ref
+	p->pp_ref += 1;
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R

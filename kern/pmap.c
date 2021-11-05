@@ -188,7 +188,6 @@ mem_init(void)
 	//    - the new image at UPAGES -- kernel R, user R
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
-	// Your code goes here:
 	boot_map_region(kern_pgdir,
 	                UPAGES,
 	                ROUNDUP(npages * sizeof(struct PageInfo), PGSIZE),
@@ -218,17 +217,12 @@ mem_init(void)
 	//       the kernel overflows its stack, it will fault rather than
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
-	// Your code goes here:
 	boot_map_region(kern_pgdir,
 	                KSTACKTOP - KSTKSIZE,
 	                ROUNDUP(KSTKSIZE, PGSIZE),
 	                PADDR(bootstack),
 	                PTE_W | PTE_P);
-	/*boot_map_region(kern_pgdir,
-	                KSTACKTOP - PTSIZE,
-	                ROUNDUP(PTSIZE - KSTKSIZE, PGSIZE),
-	                ???,
-	                PTE_W | PTE_P);*/
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
