@@ -456,7 +456,8 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 			if (pte == NULL) {
 				panic("pgdir_walk failed");
 			}
-			*pte = pa | perm | PTE_P;  // Set entry to physical address and permissions
+			*pte = pa | perm |
+			       PTE_P;  // Set entry to physical address and permissions
 		}
 		va += offset;  // Increment virtual address
 		pa += offset;  // Increment physical address
