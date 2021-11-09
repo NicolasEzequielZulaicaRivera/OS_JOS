@@ -287,7 +287,10 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
 
-	// Assuming len and va are page-aligned
+	// Make len multiple of PGSIZE so the subtraction
+	// len - PGSIZE doesn't overflow
+	len = ROUNDUP(len, PGSIZE);
+
 	while (len > 0) {
 		struct PageInfo *pp = page_alloc(ALLOC_ZERO);
 		if (!pp) {
