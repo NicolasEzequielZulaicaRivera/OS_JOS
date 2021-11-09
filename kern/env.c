@@ -280,13 +280,27 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 static void
 region_alloc(struct Env *e, void *va, size_t len)
 {
-	// LAB 3: Your code here.
 	// (But only if you need it for load_icode.)
 	//
 	// Hint: It is easier to use region_alloc if the caller can pass
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+
+	// Assuming len and va are page-aligned
+	while (len > 0) {
+		struct PageInfo *pp = page_alloc(ALLOC_ZERO);
+		if (!pp) {
+			panic("Failed to allocate page");
+		}
+		// Insert the page at va in environment's page directory
+		int status = page_insert(e->env_pgdir, pp, va, PTE_W | PTE_U);
+		if (status != 0) {
+			panic("Failed to insert page");
+		}
+		va += PGSIZE;
+		len -= PGSIZE;
+	}
 }
 
 //
