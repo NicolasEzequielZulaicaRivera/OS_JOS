@@ -290,6 +290,9 @@ region_alloc(struct Env *e, void *va, size_t len)
 	// Make len multiple of PGSIZE so the subtraction
 	// len - PGSIZE doesn't overflow
 	len = ROUNDUP(len, PGSIZE);
+	// Not aligning va because that would only change the bits
+	// that represent the offset in the page and page_alloc and page_insert
+	// ignore those
 
 	while (len > 0) {
 		struct PageInfo *pp = page_alloc(ALLOC_ZERO);
@@ -359,12 +362,55 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  to make sure that the environment starts executing there.
 	//  What?  (See env_run() and env_pop_tf() below.)
 
-	// LAB 3: Your code here.
+
+	// Save in elf the elf headers
+	struct Elf *elf = (struct Elf *) binary;
+	if (elf->e_magic != ELF_MAGIC) {
+		panic("Invalid ELF magic");
+	}
+
+
+	// Load the environment's pgdir to use its virtual addresses
+	// (for memcpy and memset)
+	lcr3(PADDR(e->env_pgdir));
+
+	// Initialize the pointer to the first program header
+	// adding the program header offset to address of the binary
+	struct Proghdr *ph = (struct Proghdr *) ((binary + elf->e_phoff));
+	// The address after the last program header will be
+	// the address after the first one plus the number of program headers
+	// (pointer arithmetic)
+	struct Proghdr *eph = ph + elf->e_phnum;
+	for (; ph < eph; ph++) {
+		if (ph->p_type == ELF_PROG_LOAD) {
+			if (ph->p_filesz > ph->p_memsz) {
+				panic("Invalid ph sizes");
+			}
+
+			// Add the mapping to the virtual address p_va
+			// to the environment's pgdir
+			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
+			// region_alloc sets protection bits to PTE_W | PTE_U
+
+			memcpy((void *) ph->p_va,
+			       binary + ph->p_offset,
+			       ph->p_filesz);
+			// Set the rest to 0
+			memset((void *) (ph->p_va + ph->p_filesz),
+			       0,
+			       ph->p_memsz - ph->p_filesz);
+		}
+	}
+
+	// Set the environment's instruction pointer to the elf's entry point
+	e->env_tf.tf_eip = elf->e_entry;
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
+	region_alloc(e, (void *) (USTACKTOP - PGSIZE), PGSIZE);
 
-	// LAB 3: Your code here.
+	// When done, load back kernel's pgdir
+	lcr3(PADDR(kern_pgdir));
 }
 
 //
