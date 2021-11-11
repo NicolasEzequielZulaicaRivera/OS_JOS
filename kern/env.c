@@ -376,7 +376,8 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	// Initialize the pointer to the first program header
 	// adding the program header offset to address of the binary
-	struct Proghdr *ph = (struct Proghdr *) ((binary + elf->e_phoff));
+	struct Proghdr *ph =
+	        (struct Proghdr *) ((uint8_t *) binary + elf->e_phoff);
 	// The address after the last program header will be
 	// the address after the first one plus the number of program headers
 	// (pointer arithmetic)
@@ -424,7 +425,10 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	struct Env *env;
-	env_alloc(&env, 0);
+	int status = env_alloc(&env, 0);
+	if (status < 0) {
+		panic("env_create: %e", status);
+	}
 	load_icode(env, binary);
 }
 
@@ -532,6 +536,24 @@ env_run(struct Env *e)
 	//	   3. Set its status to ENV_RUNNING,
 	//	   4. Update its 'env_runs' counter,
 	//	   5. Use lcr3() to switch to its address space.
+
+	// if this is not the first call to env_run
+	if (curenv) {
+		// 1.
+		if (curenv->env_status == ENV_RUNNING) {
+			curenv->env_status = ENV_RUNNABLE;
+		}
+		// 2.
+		curenv = e;
+		// 3.
+		curenv->env_status = ENV_RUNNING;
+		// 4.
+		curenv->env_runs++;
+		// 5.
+		lcr3(PADDR(curenv->env_pgdir));
+	}
+
+
 	// Step 2: Use env_pop_tf() to restore the environment's
 	//	   registers and drop into user mode in the
 	//	   environment.
@@ -541,7 +563,5 @@ env_run(struct Env *e)
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
 
-	// LAB 3: Your code here.
-
-	panic("env_run not yet implemented");
+	env_pop_tf(&(curenv->env_tf));
 }
