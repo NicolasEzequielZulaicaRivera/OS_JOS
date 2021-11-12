@@ -429,6 +429,7 @@ env_create(uint8_t *binary, enum EnvType type)
 	if (status < 0) {
 		panic("env_create: %e", status);
 	}
+	env->env_type = type;
 	load_icode(env, binary);
 }
 
@@ -538,21 +539,18 @@ env_run(struct Env *e)
 	//	   5. Use lcr3() to switch to its address space.
 
 	// if this is not the first call to env_run
-	if (curenv) {
-		// 1.
-		if (curenv->env_status == ENV_RUNNING) {
-			curenv->env_status = ENV_RUNNABLE;
-		}
-		// 2.
-		curenv = e;
-		// 3.
-		curenv->env_status = ENV_RUNNING;
-		// 4.
-		curenv->env_runs++;
-		// 5.
-		lcr3(PADDR(curenv->env_pgdir));
+	// 1
+	if (curenv && curenv->env_status == ENV_RUNNING) {
+		curenv->env_status = ENV_RUNNABLE;
 	}
-
+	// 2.
+	curenv = e;
+	// 3.
+	curenv->env_status = ENV_RUNNING;
+	// 4.
+	curenv->env_runs++;
+	// 5.
+	lcr3(PADDR(curenv->env_pgdir));
 
 	// Step 2: Use env_pop_tf() to restore the environment's
 	//	   registers and drop into user mode in the
