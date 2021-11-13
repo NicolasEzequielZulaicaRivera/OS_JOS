@@ -65,6 +65,56 @@ trap_init(void)
 
 	// LAB 3: Your code here.
 
+	extern void trap_divide_error();
+	extern void trap_debug_exception();
+	extern void trap_nmi_interrupt();
+	extern void trap_breakpoint();
+	extern void trap_overflow();
+	extern void trap_bound_range_exceeded();
+	extern void trap_invalid_opcode();
+	extern void trap_device_not_available();
+	extern void trap_double_fault();
+	// extern void trap_coprocessor_segment_overrun();
+	extern void trap_invalid_tss();
+	extern void trap_segment_not_present();
+	extern void trap_stack_segment_fault();
+	extern void trap_general_protection();
+	extern void trap_page_fault();
+	// extern void trap_reserver();
+	extern void trap_fpu_floating_point_error();
+	extern void trap_alignment_check();
+	extern void trap_machine_check();
+	extern void trap_simd_floating_point_exception();
+	// extern void trap_virtualization_exception();
+	// extern void trap_control_protection_exception();
+	extern void trap_syscall();
+	// extern void trap_catchall();
+
+	SETGATE(idt[T_DIVIDE], 0, GD_KT, trap_divide_error, 0);
+	SETGATE(idt[T_DEBUG], 0, GD_KT, trap_debug_exception, 0);
+	SETGATE(idt[T_NMI], 0, GD_KT, trap_nmi_interrupt, 0);
+	SETGATE(idt[T_BRKPT], 0, GD_KT, trap_breakpoint, 0);
+	SETGATE(idt[T_OFLOW], 0, GD_KT, trap_overflow, 0);
+	SETGATE(idt[T_BOUND], 0, GD_KT, trap_bound_range_exceeded, 0);
+	SETGATE(idt[T_ILLOP], 0, GD_KT, trap_invalid_opcode, 0);
+	SETGATE(idt[T_DEVICE], 0, GD_KT, trap_device_not_available, 0);
+	SETGATE(idt[T_DBLFLT], 0, GD_KT, trap_double_fault, 0);
+	// SETGATE(idt[T_COPROC], 0, GD_KT, trap_coprocessor_segment_overrun, 0);
+	SETGATE(idt[T_TSS], 0, GD_KT, trap_invalid_tss, 0);
+	SETGATE(idt[T_SEGNP], 0, GD_KT, trap_segment_not_present, 0);
+	SETGATE(idt[T_STACK], 0, GD_KT, trap_stack_segment_fault, 0);
+	SETGATE(idt[T_GPFLT], 0, GD_KT, trap_general_protection, 0);
+	SETGATE(idt[T_PGFLT], 0, GD_KT, trap_page_fault, 0);
+	// SETGATE(idt[T_RES], 0, GD_KT, trap_reserver, 0);
+	SETGATE(idt[T_FPERR], 0, GD_KT, trap_fpu_floating_point_error, 0);
+	SETGATE(idt[T_ALIGN], 0, GD_KT, trap_alignment_check, 0);
+	SETGATE(idt[T_MCHK], 0, GD_KT, trap_machine_check, 0);
+	SETGATE(idt[T_SIMDERR], 0, GD_KT, trap_simd_floating_point_exception, 0);
+	// SETGATE(idt[20], 0, GD_KT, trap_virtualization_exception, 0);
+	// SETGATE(idt[21], 0, GD_KT, trap_control_protection_exception, 0);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_syscall, 0);
+	// SETGATE(idt[T_DEFAULT], 0, GD_KT, trap_catchall, 0);
+
 	// Per-CPU setup
 	trap_init_percpu();
 }
@@ -142,6 +192,9 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+
+	int result = 0;  // syscall( tf->tf_trapno, )
+	tf->tf_regs.reg_eax = result;
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);

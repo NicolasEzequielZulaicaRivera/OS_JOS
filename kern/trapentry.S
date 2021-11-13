@@ -46,10 +46,49 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
+TRAPHANDLER_NOEC(trap_divide_error, T_DIVIDE);// 0
+TRAPHANDLER_NOEC(trap_debug_exception, T_DEBUG);// 1
+TRAPHANDLER_NOEC(trap_nmi_interrupt, T_NMI);// 2
+TRAPHANDLER_NOEC(trap_breakpoint, T_BRKPT);// 3
+TRAPHANDLER_NOEC(trap_overflow, T_OFLOW);// 4
 
+TRAPHANDLER_NOEC(trap_bound_range_exceeded, T_BOUND);// 5
+TRAPHANDLER_NOEC(trap_invalid_opcode, T_ILLOP);// 6
+TRAPHANDLER_NOEC(trap_device_not_available, T_DEVICE);// 7
+TRAPHANDLER(trap_double_fault, T_DBLFLT);// 8
+/* TRAPHANDLER_NOEC(trap_coprocessor_segment_overrun, T_COPROC);// 9 */ 
 
+TRAPHANDLER(trap_invalid_tss, T_TSS); // 10
+TRAPHANDLER(trap_segment_not_present, T_SEGNP);// 11
+TRAPHANDLER(trap_stack_segment_fault, T_STACK);// 12
+TRAPHANDLER(trap_general_protection, T_GPFLT);// 13
+TRAPHANDLER(trap_page_fault, T_PGFLT);// 14
+
+/* TRAPHANDLER_NOEC(trap_reserver, T_RES);// 15 */
+TRAPHANDLER_NOEC(trap_fpu_floating_point_error, T_FPERR);// 16
+TRAPHANDLER(trap_alignment_check, T_ALIGN);// 17
+TRAPHANDLER_NOEC(trap_machine_check, T_MCHK);// 18
+TRAPHANDLER_NOEC(trap_simd_floating_point_exception, T_SIMDERR);// 19
+
+/* TRAPHANDLER_NOEC(trap_virtualization_exception, 20);// 20 */
+/* TRAPHANDLER(trap_control_protection_exception, 21);// 21 */
+
+TRAPHANDLER_NOEC(trap_syscall, T_SYSCALL);// 48
+/* TRAPHANDLER_NOEC(trap_catchall, T_DEFAULT);// 500 */
 
 /*
  * Lab 3: Your code here for _alltraps
  */
+_alltraps:
+	pushl %ds;
+	pushl %es;
+	pushal;
 
+	mov $GD_KD, %ax;
+	mov %ax, %ds;
+	mov %ax, %es;
+
+	pushl %esp;
+
+	call trap;
+	
