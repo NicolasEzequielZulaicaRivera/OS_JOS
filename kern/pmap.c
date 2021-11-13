@@ -606,6 +606,32 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	// Align the addresses
+	const void *start_va = ROUNDDOWN(va, PGSIZE);
+	const void *end_va = ROUNDUP(va + len, PGSIZE);
+	const void *_va = start_va;
+
+	// Check conditions for each page
+	for (; _va < end_va; _va += PGSIZE) {
+		// Check if the address is below ULIM
+		if ((uintptr_t) _va >= ULIM) {
+			user_mem_check_addr = (uintptr_t) _va;
+			return -E_FAULT;
+		}
+
+		// Check if the page table gives the user access
+		pte_t *pte = pgdir_walk(env->env_pgdir, _va, 0);
+		if (!pte || !(*pte & perm)) {
+			// Fault address
+			user_mem_check_addr = (uintptr_t) _va;
+
+			// First page doesn't give access
+			if (_va == start_va)
+				user_mem_check_addr = (uintptr_t) va;
+
+			return -E_FAULT;
+		}
+	}
 
 	return 0;
 }
