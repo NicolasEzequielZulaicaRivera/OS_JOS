@@ -112,7 +112,7 @@ trap_init(void)
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, trap_simd_floating_point_exception, 0);
 	// SETGATE(idt[20], 0, GD_KT, trap_virtualization_exception, 0);
 	// SETGATE(idt[21], 0, GD_KT, trap_control_protection_exception, 0);
-	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_syscall, 0);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_syscall, 3);
 	// SETGATE(idt[T_DEFAULT], 0, GD_KT, trap_catchall, 0);
 
 	// Per-CPU setup
@@ -198,6 +198,14 @@ trap_dispatch(struct Trapframe *tf)
 		return;
 	case T_BRKPT:
 		monitor(tf);
+		return;
+	case T_SYSCALL:
+		tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,
+		                              tf->tf_regs.reg_edx,
+		                              tf->tf_regs.reg_ecx,
+		                              tf->tf_regs.reg_ebx,
+		                              tf->tf_regs.reg_edi,
+		                              tf->tf_regs.reg_esi);
 		return;
 	}
 
