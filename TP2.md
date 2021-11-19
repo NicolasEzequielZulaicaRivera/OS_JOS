@@ -86,5 +86,27 @@ La CPU cambia el CPL cuando el control del programa es transferido a un segmento
 
 ## kern_idt
 
+### ¿Cómo decidir si usar TRAPHANDLER o TRAPHANDLER_NOEC? ¿Qué pasaría si se usara solamente la primera?
+
+Para saber si usar TRAPHANDLER o TRAPHANDLER_NOEC es necesario concer que interrpuciones utilizan el error code y cuales no, lo que se puede sacar del manual de intel.
+
+Si se usara solamente TRAPHANDLER, dado que no se hace un push para rellenar cuando se trate de instrucciones que no requieren error code, el struct TrapFrame, que es el mismo para ambos casos, quedaria con basura.
+
+### ¿Qué cambia, en la invocación de handlers, el segundo parámetro (istrap) de la macro SETGATE? ¿Por qué se elegiría un comportamiento u otro durante un syscall?
+
+Istrap se encarga de determinar si se permiten las interrupciones anidadas o si no se permiten. 
+
+Cuando no se permiten, si llega una interrupción mientras se está manejando otra se encola la nueva. Esto es lo que hace Jos por simplicidad.
+
+Permitir las interrupciones anidadas presenta la ventaja de que es más flexible ya que permite priorizar cual ejecutar primero, como pasa en Linux.
+
+### Leer user/softint.c y ejecutarlo con make run-softint-nox. ¿Qué interrupción trata de generar? ¿Qué interrupción se genera? Si son diferentes a la que invoca el programa… ¿cuál es el mecanismo por el que ocurrió esto, y por qué motivos? ¿Qué modificarían en JOS para cambiar este comportamiento?
+
+Intenta un PAGE_FAULT, pero genera un GENERAL_PROTECTION_FAULT.
+
+Esto ocurre porque cuando definen los privilegios de la interrupcion en trap_init, se establece que el nivel de privilegio necesario para ejecutar la iterrupción PAGE_FAULT es el de Kernel. Al intentar ejecutarla desde un programa de usuario, no se permite lanzar la interrupcion y se aborta el programa con un GENERAL_PROTECTION_FAULT.
+
+Para que el usuario pueda lanzar un PAGE_FAULT directamente, se tendria que cambiar el nivel de privilegio necesario para esto a de 0 a 3.
+
 ## user_evilhello
 
