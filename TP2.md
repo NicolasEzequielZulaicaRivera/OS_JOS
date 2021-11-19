@@ -84,4 +84,7 @@ La CPU cambia el CPL cuando el control del programa es transferido a un segmento
 
 ## gdb_hello
 
+## kern_idt
+
+## user_evilhello
 
