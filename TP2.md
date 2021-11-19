@@ -50,13 +50,37 @@ En esta caso e-envs será siempre 630 y lo que cambia es generation:
 
 #### ¿Cuántos bytes escribe la función lgdt, y dónde?
 
-
+La funcion `env_init_percpu` hace un llamado a `lgdt` donde escribe 6 entradas de 8 bytes cada una, un total de 48 bytes.
+Esto se escribe en la GDT ( Global descriptor table ), la direccion de esta tabla es almacenada en el registro %gdtr del cpu.
 
 #### ¿Qué representan esos bytes?
 
+Cada entrada representa un descriptor de segmento que almacena:
+- *Direccion Inicial (Base address)*
+- *Limite (Bounds)*
+- *Permisos (Access Rights)*
+- *Informacion de uso (Usage Information)*
+
+
 ## env_pop_tf
 
+### La función env_pop_tf() ya implementada es en JOS el último paso de un context switch a modo usuario. Antes de implementar env_run(), responder a las siguientes preguntas:
 
+#### 1. Dada la secuencia de instrucciones assembly en la función, describir qué contiene durante su ejecución:
+- el tope de la pila justo antes popal: La direccion del trapframe que recibe por parametro
+- el tope de la pila justo antes iret: El instruction pointer del trapframe recibido por parametro (tf->tf_eip)
+- el tercer elemento de la pila justo antes de iret: Los flags del trapframe recibido por parametro (tf->tf_eflags)
+
+
+#### 2. En la documentación de iret en [IA32-2A] se dice:
+
+> If the return is to another privilege level, the IRET instruction also pops the stack pointer and SS from the stack, before resuming program execution.
+
+¿Cómo determina la CPU (en x86) si hay un cambio de ring (nivel de privilegio)? Ayuda: Responder antes en qué lugar exacto guarda x86 el nivel de privilegio actual. ¿Cuántos bits almacenan ese privilegio?
+
+El privilegio actual (CPL) ocupa 2 bits que se almacenan al principio de los registros de segmento CS y SS.
+
+La CPU cambia el CPL cuando el control del programa es transferido a un segmento de codigo con un diferente nivel de privilegio.
 
 ## gdb_hello
 
