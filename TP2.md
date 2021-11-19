@@ -42,14 +42,17 @@ En esta caso e-envs será siempre 630 y lo que cambia es generation:
 - 20480 en la quinta  llamada -> env id será **21110**
 - 24576 en la sexta   llamada -> env id será **25206**
 
-*Nota: la primera llamada seria la primera vez que se crea enviroment en la posicion 630, al crear todos los otros.*
-* las siguientes 5 son aquellas en las cuales se crea y se destruye *
+*Nota: la primera llamada seria la primera vez que se crea enviroment en la posicion 630, al crear todos los otros. las siguientes 5 son aquellas en las cuales se crea y se destruye*
 
 > Aquí tampoco se entrara al if por la misma razón de antes
 
 ## env_init_percpu
 
+#### ¿Cuántos bytes escribe la función lgdt, y dónde?
 
+
+
+#### ¿Qué representan esos bytes?
 
 ## env_pop_tf
 
