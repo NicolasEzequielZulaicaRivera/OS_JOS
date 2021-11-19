@@ -64,6 +64,33 @@ Cada entrada representa un descriptor de segmento que almacena:
 
 ## env_pop_tf
 
+### Se pide mostrar una sesión de GDB con los siguientes pasos:
+
+1. Poner un breakpoint en env_pop_tf() y continuar la ejecución hasta allí.
+
+2. En QEMU, entrar en modo monitor (Ctrl-a c), y mostrar las cinco primeras líneas del comando info registers.
+
+3. De vuelta a GDB, imprimir el valor del argumento tf:
+
+4. Imprimir, con `x/Nx` tf tantos enteros como haya en el struct Trapframe donde `N = sizeof(Trapframe) / sizeof(int)`.
+
+5. Avanzar hasta justo después del movl ...,%esp, usando si M para ejecutar tantas instrucciones como sea necesario en un solo paso:
+
+6. Comprobar, con `x/Nx $sp` que los contenidos son los mismos que tf (donde N es el tamaño de tf).
+
+7. Describir cada uno de los valores. Para los valores no nulos, se debe indicar dónde se configuró inicialmente el valor, y qué representa.
+
+8. Continuar hasta la instrucción iret, sin llegar a ejecutarla. Mostrar en este punto, de nuevo, las cinco primeras líneas de info registers en el monitor de QEMU. Explicar los cambios producidos.
+
+9. Ejecutar la instrucción iret. En ese momento se ha realizado el cambio de contexto y los símbolos del kernel ya no son válidos.
+
+  - imprimir el valor del contador de programa con p $pc o p $eip
+  - cargar los símbolos de hello con el comando add-symbol-filee
+  - volver a imprimir el valor del contador de programa
+  - Mostrar una última vez la salida de info registers en QEMU, y explicar los cambios producidos.
+
+10. Poner un breakpoint temporal (tbreak, se aplica una sola vez) en la función syscall() y explicar qué ocurre justo tras ejecutar la instrucción int $0x30. Usar, de ser necesario, el monitor de QEMU.
+
 ### La función env_pop_tf() ya implementada es en JOS el último paso de un context switch a modo usuario. Antes de implementar env_run(), responder a las siguientes preguntas:
 
 #### 1. Dada la secuencia de instrucciones assembly en la función, describir qué contiene durante su ejecución:
@@ -109,4 +136,28 @@ Esto ocurre porque cuando definen los privilegios de la interrupcion en trap_ini
 Para que el usuario pueda lanzar un PAGE_FAULT directamente, se tendria que cambiar el nivel de privilegio necesario para esto a de 0 a 3.
 
 ## user_evilhello
+```
+#include <inc/lib.h>
 
+void
+umain(int argc, char **argv)
+{
+    char *entry = (char *) 0xf010000c;
+    char first = *entry;
+    sys_cputs(&first, 1);
+}
+```
+
+- ¿En qué se diferencia el código de la versión en evilhello.c mostrada arriba?
+
+La diferencia es que la version original de evilhello hace un acceso a la direccion `0xf010000c`,
+mientras que arriba se accede a la direccion un puntero definido por el usuario.
+
+- ¿En qué cambia el comportamiento durante la ejecución? ¿Por qué? ¿Cuál es el mecanismo?
+  
+  - original: falla `user_mem_check` y se destrulle el env
+  - arriba: [???]
+
+- Listar las direcciones de memoria que se acceden en ambos casos, y en qué ring se realizan. ¿Es esto un problema? ¿Por qué?
+  - original: se accede a `0xf010000c` desde el ring 3. es un problema porque el usuario no tiene permiso.
+  - arriba: se accede a un puntero local desde el ring 3. [???]
