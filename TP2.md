@@ -215,10 +215,10 @@ EIP=f0102eba EFL=00000096 [--S-AP-] CPL=0 II=0 A20=1 SMM=0 HLT=0
 ES =0023 00000000 ffffffff 00cff300 DPL=3 DS   [-WA]
 CS =0008 00000000 ffffffff 00cf9a00 DPL=0 CS32 [-R-]
 SS =0010 00000000 ffffffff 00cf9300 DPL=0 DS   [-WA]
-DS =0023 00000000 ffffffff 00cff300 DPL=3 DS   [-WA]
 ```
   - Cambios
-    - DPL del segmento de datos pasa de kernel (0) a usuario (3)
+   - Los registros se limpiaron 
+   - DPL del segmento de datos pasa de kernel (0) a usuario (3)
 
 #### 9. Ejecutar la instrucción iret. En ese momento se ha realizado el cambio de contexto y los símbolos del kernel ya no son válidos.
 
@@ -253,10 +253,11 @@ SS =0023 00000000 ffffffff 00cff300 DPL=3 DS   [-WA]
 ```
 
   - Cambios:
-    - Yes
+    - Mismos valores que el tf
 
 #### 10. Poner un breakpoint temporal (tbreak, se aplica una sola vez) en la función syscall() y explicar qué ocurre justo tras ejecutar la instrucción int $0x30. Usar, de ser necesario, el monitor de QEMU.
 
+No se encontro `int $0x30`
 
 ## kern_idt
 
