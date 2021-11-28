@@ -60,6 +60,11 @@ start32:
 	movw    %ax, %fs
 	movw    %ax, %gs
 
+	# Activate large pages support. page size is increased to 4 MiB
+	movl	%cr4, %eax
+	orl	$(CR4_PSE), %eax
+	movl	%eax, %cr4
+
 	# Set up initial page table. We cannot use kern_pgdir yet because
 	# we are still running at a low EIP.
 	movl    $(RELOC(entry_pgdir)), %eax
