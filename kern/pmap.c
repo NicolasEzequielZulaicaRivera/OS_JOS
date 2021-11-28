@@ -335,6 +335,9 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
+	_Static_assert(MPENTRY_PADDR % PGSIZE == 0,
+	               "MPENTRY_PADDR is not page-aligned");
+
 	size_t i;
 	const uint32_t KERNEND =
 	        PADDR(boot_alloc(0));  // PADDR of last allocated memory
@@ -342,11 +345,15 @@ page_init(void)
 	for (i = 0; i < npages; i++) {
 		const uint32_t PAGE_I = i * PGSIZE;
 
-		if (!((PAGE_I == 0) ||  // 1 - Physical page 0
-		      (IOPHYSMEM <= PAGE_I && PAGE_I < EXTPHYSMEM) ||  // 3 - IO hole
-		      (EXTPHYSMEM <= PAGE_I &&
-		       PAGE_I < KERNEND))  // 4 - Kernel Physical memory
-		) {
+		if (!(
+		            // 1 - Physical page 0
+		            (PAGE_I == 0) ||
+		            // 3 - IO hole
+		            (IOPHYSMEM <= PAGE_I && PAGE_I < EXTPHYSMEM) ||
+		            // 4 - Kernel Physical memory
+		            (EXTPHYSMEM <= PAGE_I && PAGE_I < KERNEND) ||
+		            // 5 - page at MPENTRY_PADDR
+		            (PAGE_I == MPENTRY_PADDR))) {
 			pages[i].pp_link = page_free_list;
 			page_free_list = &pages[i];
 		}
