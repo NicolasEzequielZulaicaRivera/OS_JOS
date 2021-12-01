@@ -122,7 +122,7 @@ trap_init(void)
 	// SETGATE(idt[21], 0, GD_KT, trap_control_protection_exception, 0);
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_syscall, 3);
 	// SETGATE(idt[T_DEFAULT], 0, GD_KT, trap_catchall, 0);
-	SETGATE(idt[IRQ_OFFSET+IRQ_TIMER], 0, GD_KT, trap_irq_timer, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, trap_irq_timer, 0);
 
 	// Per-CPU setup
 	trap_init_percpu();
