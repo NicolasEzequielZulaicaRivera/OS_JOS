@@ -587,6 +587,6 @@ env_run(struct Env *e)
 	//	e->env_tf.  Go back through the code you wrote above
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
-
+	unlock_kernel();
 	env_pop_tf(&(curenv->env_tf));
 }
