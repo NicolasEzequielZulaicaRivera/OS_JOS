@@ -96,6 +96,23 @@ Ayuda: Leer con atención la documentación de sys_page_map() en kern/syscall.c,
 
 # Parte 3: Ejecución en paralelo (multi-core)
 
+## multicore_init
+
+### ¿Qué código copia, y a dónde, la siguiente línea de la función boot_aps()?
+
+`memmove(code, mpentry_start, mpentry_end - mpentry_start);`
+
+### ¿Para qué se usa la variable global mpentry_kstack? ¿Qué ocurriría si el espacio para este stack se reservara en el archivo kern/mpentry.S, de manera similar a bootstack en el archivo kern/entry.S?
+
+### En el archivo kern/mpentry.S se puede leer:
+
+```
+ # We cannot use kern_pgdir yet because we are still
+ # running at a low EIP.
+ movl $(RELOC(entry_pgdir)), %eax
+```
+- ¿Qué valor tendrá el registro %eip cuando se ejecute esa línea? Responder con redondeo a 12 bits, justificando desde qué región de memoria se está ejecutando este código.
+
 # Parte 4: Comunicación entre procesos
 
 # Parte 5: Manejo de page faults
