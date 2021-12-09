@@ -396,8 +396,8 @@ page_fault_handler(struct Trapframe *tf)
 			u = (struct UTrapframe *) (tf->tf_esp - 4 -
 			                           sizeof(struct UTrapframe));
 		}
-		
-		user_mem_assert(curenv, u,sizeof(struct UTrapframe), PTE_W);
+
+		user_mem_assert(curenv, u, sizeof(struct UTrapframe), PTE_W);
 
 		u->utf_fault_va = fault_va;
 		u->utf_err = tf->tf_err;
