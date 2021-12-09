@@ -335,7 +335,13 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	if ((uint32_t) dstva < UTOP && (uint32_t) dstva % PGSIZE != 0)
+		return -E_INVAL;
+
+	curenv->env_ipc_recving = 1;
+	curenv->env_ipc_dstva = dstva;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+
 	return 0;
 }
 
