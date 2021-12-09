@@ -387,7 +387,6 @@ page_fault_handler(struct Trapframe *tf)
 	if (curenv->env_pgfault_upcall) {
 		struct UTrapframe *u;
 
-		user_mem_assert(curenv, (void *) UXSTACKTOP - PGSIZE, PGSIZE, PTE_W);
 
 		u = (struct UTrapframe *) UXSTACKTOP - sizeof(struct UTrapframe);
 		// If i am in the recursive case
@@ -397,7 +396,8 @@ page_fault_handler(struct Trapframe *tf)
 			u = (struct UTrapframe *) (tf->tf_esp - 4 -
 			                           sizeof(struct UTrapframe));
 		}
-
+		
+		user_mem_assert(curenv, u,sizeof(struct UTrapframe), PTE_W);
 
 		u->utf_fault_va = fault_va;
 		u->utf_err = tf->tf_err;
