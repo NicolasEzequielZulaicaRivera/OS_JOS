@@ -232,20 +232,20 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
 	switch (tf->tf_trapno) {
-		case T_PGFLT:
-			page_fault_handler(tf);
-			return;
-		case T_BRKPT:
-			monitor(tf);
-			return;
-		case T_SYSCALL:
-			tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,
+	case T_PGFLT:
+		page_fault_handler(tf);
+		return;
+	case T_BRKPT:
+		monitor(tf);
+		return;
+	case T_SYSCALL:
+		tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,
 		                              tf->tf_regs.reg_edx,
 		                              tf->tf_regs.reg_ecx,
 		                              tf->tf_regs.reg_ebx,
 		                              tf->tf_regs.reg_edi,
 		                              tf->tf_regs.reg_esi);
-			return;
+		return;
 	}
 
 	// Handle spurious interrupts
@@ -384,17 +384,17 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
-	if (curenv->env_pgfault_upcall){
+	if (curenv->env_pgfault_upcall) {
 		struct UTrapframe *u;
 
-		user_mem_assert(curenv, (void*) UXSTACKTOP-PGSIZE, PGSIZE, PTE_W);
+		user_mem_assert(curenv, (void *) UXSTACKTOP - PGSIZE, PGSIZE, PTE_W);
 
 		u = (struct UTrapframe *) UXSTACKTOP;
 		// If i am in the recursive case
-		if ((tf->tf_esp >= UXSTACKTOP-PGSIZE) && (tf->tf_esp <= UXSTACKTOP-1)){
+		if ((tf->tf_esp >= UXSTACKTOP - PGSIZE) &&
+		    (tf->tf_esp <= UXSTACKTOP - 1)) {
 			u = (struct UTrapframe *) (tf->tf_esp + 4);
 		}
-
 
 
 		u->utf_fault_va = fault_va;
