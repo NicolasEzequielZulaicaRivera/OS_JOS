@@ -232,20 +232,20 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
 	switch (tf->tf_trapno) {
-	case T_PGFLT:
-		page_fault_handler(tf);
-		return;
-	case T_BRKPT:
-		monitor(tf);
-		return;
-	case T_SYSCALL:
-		tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,
+		case T_PGFLT:
+			page_fault_handler(tf);
+			return;
+		case T_BRKPT:
+			monitor(tf);
+			return;
+		case T_SYSCALL:
+			tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,
 		                              tf->tf_regs.reg_edx,
 		                              tf->tf_regs.reg_ecx,
 		                              tf->tf_regs.reg_ebx,
 		                              tf->tf_regs.reg_edi,
 		                              tf->tf_regs.reg_esi);
-		return;
+			return;
 	}
 
 	// Handle spurious interrupts
@@ -384,6 +384,33 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	if (curenv->env_pgfault_upcall){
+		struct UTrapframe *u;
+
+		user_mem_assert(curenv, (void*) UXSTACKTOP-PGSIZE, PGSIZE, PTE_W);
+
+		u = (struct UTrapframe *) UXSTACKTOP;
+		// If i am in the recursive case
+		if ((tf->tf_esp >= UXSTACKTOP-PGSIZE) && (tf->tf_esp <= UXSTACKTOP-1)){
+			u = (struct UTrapframe *) (tf->tf_esp + 4);
+		}
+
+
+
+		u->utf_fault_va = fault_va;
+		u->utf_err = tf->tf_err;
+		u->utf_regs = tf->tf_regs;
+		u->utf_eip = tf->tf_eip;
+		u->utf_eflags = tf->tf_eflags;
+		u->utf_esp = tf->tf_esp;
+
+
+		tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
+		tf->tf_esp = (uintptr_t) u;
+
+		env_run(curenv);
+	}
+
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
