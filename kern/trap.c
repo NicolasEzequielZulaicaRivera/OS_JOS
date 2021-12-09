@@ -393,8 +393,8 @@ page_fault_handler(struct Trapframe *tf)
 		// If i am in the recursive case
 		if ((tf->tf_esp >= UXSTACKTOP - PGSIZE) &&
 		    (tf->tf_esp <= UXSTACKTOP - 1)) {
-			*(uint32_t *) (tf->tf_esp - 4) = 0;
-			u = (struct UTrapframe *) (tf->tf_esp + 4 -
+			*(uint32_t *) (tf->tf_esp - 4) = 10;
+			u = (struct UTrapframe *) (tf->tf_esp - 4 -
 			                           sizeof(struct UTrapframe));
 		}
 
