@@ -317,7 +317,55 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env *env;
+
+	//	-E_BAD_ENV if environment envid doesn't currently exist.
+	if (envid2env(envid, &env, 1) < 0)
+		return -E_BAD_ENV;
+
+	//	-E_IPC_NOT_RECV if envid is not currently blocked in
+	//sys_ipc_recv, 		or another environment managed to send first.
+	if (!(env->env_ipc_recving))
+		return -E_IPC_NOT_RECV;
+
+	pte_t *pte;
+	if (
+		//	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
+		((srcva < (void *) UTOP) && ((uint32_t) srcva % PGSIZE != 0))
+		//	-E_INVAL if srcva < UTOP and perm is inappropriate
+		//		(see sys_page_alloc).
+		|| ((srcva < (void *) UTOP) &&
+			(perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)))
+		//	-E_INVAL if srcva < UTOP but srcva is not mapped in the
+		//caller's 		address space.
+		|| ((srcva < (void *) UTOP) &&
+			(page_lookup(curenv->env_pgdir, srcva, &pte) == NULL))
+		//	-E_INVAL if (perm & PTE_W), but srcva is read-only in
+		//the 		current environment's address space.
+		|| ((perm & PTE_W) && !(*pte & PTE_W))
+	)
+		return -E_INVAL;
+
+
+	// If srcva < UTOP, then also send page currently mapped at 'srcva',
+	// so that receiver gets a duplicate mapping of the same page.
+	void *dstva = env->env_ipc_dstva;
+	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP) {
+		if (sys_page_map(curenv->env_id, srcva, env->env_id, dstva, perm) <
+		    0)
+			return -E_NO_MEM;
+		env->env_ipc_perm = perm;
+	} else {
+		env->env_ipc_perm = 0;
+	}
+
+	env->env_ipc_recving = 0;
+	env->env_ipc_value = value;
+	env->env_ipc_from = curenv->env_id;
+	env->env_status = ENV_RUNNABLE;
+	env->env_tf.tf_regs.reg_eax = 0;
+
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive

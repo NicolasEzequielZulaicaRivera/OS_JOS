@@ -149,6 +149,7 @@ Se puede distinguir ya que`src` sera el envid del proceso que envía el mensaje 
     - [ ] trap_init_percpu
 - [ ] Parte 4
     - [ ] ipc_recv
+    - [ ] sys_ipc_try_send
 - [ ] Parte 5
     - [ ] page_fault_handler*
     - [ ] page_fault_handler_upcall*
