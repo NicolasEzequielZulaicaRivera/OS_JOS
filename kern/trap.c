@@ -389,11 +389,13 @@ page_fault_handler(struct Trapframe *tf)
 
 		user_mem_assert(curenv, (void *) UXSTACKTOP - PGSIZE, PGSIZE, PTE_W);
 
-		u = (struct UTrapframe *) UXSTACKTOP;
+		u = (struct UTrapframe *) UXSTACKTOP - sizeof(struct UTrapframe);
 		// If i am in the recursive case
 		if ((tf->tf_esp >= UXSTACKTOP - PGSIZE) &&
 		    (tf->tf_esp <= UXSTACKTOP - 1)) {
-			u = (struct UTrapframe *) (tf->tf_esp + 4);
+			*(uint32_t *) (tf->tf_esp - 4) = 0;
+			u = (struct UTrapframe *) (tf->tf_esp + 4 -
+			                           sizeof(struct UTrapframe));
 		}
 
 
