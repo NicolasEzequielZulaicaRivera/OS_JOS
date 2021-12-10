@@ -249,7 +249,7 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 		return -E_INVAL;
 
 	struct Env *dst_env;
-	if (envid2env(dstenvid, &dst_env, 1) < 0)
+	if (envid2env(dstenvid, &dst_env, 0) < 0)
 		return -E_BAD_ENV;
 
 	if (page_insert(dst_env->env_pgdir, src_page, dstva, perm) < 0)
@@ -327,7 +327,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	struct Env *env;
 
 	//	-E_BAD_ENV if environment envid doesn't currently exist.
-	if (envid2env(envid, &env, 1) < 0)
+	if (envid2env(envid, &env, 0) < 0)
 		return -E_BAD_ENV;
 
 	//	-E_IPC_NOT_RECV if envid is not currently blocked in
