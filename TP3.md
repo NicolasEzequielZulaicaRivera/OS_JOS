@@ -115,6 +115,23 @@ Ayuda: Leer con atención la documentación de sys_page_map() en kern/syscall.c,
 
 # Parte 4: Comunicación entre procesos
 
+## ipc_recv
+
+- Un proceso podría intentar enviar el valor númerico -E_INVAL vía ipc_send(). ¿Cómo es posible distinguir si es un error, o no?
+
+```
+envid_t src = -1;
+int r = ipc_recv(&src, 0, NULL);
+
+if (r < 0)
+  if (/* ??? */)
+    puts("Hubo error.");
+  else
+    puts("Valor negativo correcto.")
+```
+
+Se puede distinguir ya que`src` sera el envid del proceso que envía el mensaje si es correcto o 0 si hay error.
+
 # Parte 5: Manejo de page faults
 
 # Parte 6: Copy-on-write fork
@@ -128,6 +145,12 @@ Ayuda: Leer con atención la documentación de sys_page_map() en kern/syscall.c,
     - [ ] envid2env
     - [ ] dumbfork
 - [ ] Parte 3
+    - [ ] multicore_init
+    - [ ] trap_init_percpu
 - [ ] Parte 4
+    - [ ] ipc_recv
+    - [ ] sys_ipc_try_send
 - [ ] Parte 5
+    - [ ] page_fault_handler*
+    - [ ] page_fault_handler_upcall*
 - [ ] Parte 6
