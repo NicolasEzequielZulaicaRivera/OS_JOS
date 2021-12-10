@@ -42,7 +42,7 @@ En esta caso e-envs será siempre 630 y lo que cambia es generation:
 - 20480 en la quinta  llamada -> env id será **21110**
 - 24576 en la sexta   llamada -> env id será **25206**
 
-*Nota: la primera llamada seria la primera vez que se crea enviroment en la posicion 630, al crear todos los otros. las siguientes 5 son aquellas en las cuales se crea y se destruye*
+*Nota: la primera llamada sería la primera vez que se crea enviroment en la posición 630, al crear todos los otros. Las siguientes 5 son aquellas en las cuales se crea y se destruye*
 
 > Aquí tampoco se entrara al if por la misma razón de antes
 
@@ -50,16 +50,16 @@ En esta caso e-envs será siempre 630 y lo que cambia es generation:
 
 #### ¿Cuántos bytes escribe la función lgdt, y dónde?
 
-La funcion `env_init_percpu` hace un llamado a `lgdt` donde escribe 6 entradas de 8 bytes cada una, un total de 48 bytes.
-Esto se escribe en la GDT ( Global descriptor table ), la direccion de esta tabla es almacenada en el registro %gdtr del cpu.
+La función `env_init_percpu` hace un llamado a `lgdt` donde escribe 6 entradas de 8 bytes cada una, un total de 48 bytes.
+Esto se escribe en la GDT ( Global descriptor table ), la dirección de esta tabla es almacenada en el registro %gdtr del cpu.
 
 #### ¿Qué representan esos bytes?
 
 Cada entrada representa un descriptor de segmento que almacena:
-- *Direccion Inicial (Base address)*
+- *Dirección Inicial (Base address)*
 - *Limite (Bounds)*
 - *Permisos (Access Rights)*
-- *Informacion de uso (Usage Information)*
+- *Información de uso (Usage Information)*
 
 
 ## env_pop_tf
@@ -67,9 +67,9 @@ Cada entrada representa un descriptor de segmento que almacena:
 ### La función env_pop_tf() ya implementada es en JOS el último paso de un context switch a modo usuario. Antes de implementar env_run(), responder a las siguientes preguntas:
 
 #### 1. Dada la secuencia de instrucciones assembly en la función, describir qué contiene durante su ejecución:
-- el tope de la pila justo antes popal: La direccion del trapframe que recibe por parametro
-- el tope de la pila justo antes iret: El instruction pointer del trapframe recibido por parametro (tf->tf_eip)
-- el tercer elemento de la pila justo antes de iret: Los flags del trapframe recibido por parametro (tf->tf_eflags)
+- el tope de la pila justo antes popal: La dirección del trapframe que recibe por parámetro
+- el tope de la pila justo antes iret: El instruction pointer del trapframe recibido por parámetro (tf->tf_eip)
+- el tercer elemento de la pila justo antes de iret: Los flags del trapframe recibido por parámetro (tf->tf_eflags)
 
 
 #### 2. En la documentación de iret en [IA32-2A] se dice:
@@ -190,7 +190,7 @@ End of assembler dump.
   | 16 |0xeebfe000| tf_esp | stack pointer |
   | 17 | 0x23 | tf_ss      | segment stack |
 
-  - env_alloc:
+  - Configuración inicial hecha en env_alloc:
 ```
 e->env_tf.tf_ds = GD_UD | 3;
 e->env_tf.tf_es = GD_UD | 3;
@@ -199,7 +199,7 @@ e->env_tf.tf_esp = USTACKTOP;
 e->env_tf.tf_cs = GD_UT | 3;
 // You will set e->env_tf.tf_eip later.
 ```
-  - load_icode:
+  - Configuración inicial hecha en load_icode:
 ```
 // Set the environment's instruction pointer to the elf's entry point
 e->env_tf.tf_eip = elf->e_entry;
@@ -216,9 +216,9 @@ ES =0023 00000000 ffffffff 00cff300 DPL=3 DS   [-WA]
 CS =0008 00000000 ffffffff 00cf9a00 DPL=0 CS32 [-R-]
 SS =0010 00000000 ffffffff 00cf9300 DPL=0 DS   [-WA]
 ```
-  - Cambios
+Cambios:
    - Los registros se limpiaron 
-   - DPL del segmento de datos pasa de kernel (0) a usuario (3)
+   - DPL los segmentos de datos pasan de kernel (0) a usuario (3)
 
 #### 9. Ejecutar la instrucción iret. En ese momento se ha realizado el cambio de contexto y los símbolos del kernel ya no son válidos.
 
@@ -253,7 +253,7 @@ SS =0023 00000000 ffffffff 00cff300 DPL=3 DS   [-WA]
 ```
 
   - Cambios:
-    - Mismos valores que el tf
+    - Ahora se pueden ver los mismos valores que el tf
 
 #### 10. Poner un breakpoint temporal (tbreak, se aplica una sola vez) en la función syscall() y explicar qué ocurre justo tras ejecutar la instrucción int $0x30. Usar, de ser necesario, el monitor de QEMU.
 
