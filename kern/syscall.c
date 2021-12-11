@@ -227,9 +227,12 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
-	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) ||
+
+	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W |
+	              0x800)) ||  // Add COW permison for part 6
 	    !(perm & (PTE_P | PTE_U)))
 		return -E_INVAL;
+
 
 	if ((uint32_t) srcva >= UTOP || (uint32_t) srcva % PGSIZE != 0 ||
 	    (uint32_t) dstva >= UTOP || (uint32_t) dstva % PGSIZE != 0)
