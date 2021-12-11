@@ -6,6 +6,18 @@
 
 ### al terminar un proceso su función umain() ¿dónde retoma la ejecución el kernel? Describir la secuencia de llamadas desde que termina umain() hasta que el kernel dispone del proceso.
 
+Al terminar `umain` continuará con la siguiente instrucción de `libmain` (donde fue llamada `umain`) que llamara a la funcion `exit`, que llamara a `sys_env_destroy(0)` donde el kernel retoma la ejecución.
+
+Luego, las secuencia de llamadas sera:
+```
+0xf01041e5 in trap (tf=0x0) at kern/trap.c:328
+0xf010414b in trap_dispatch (tf=0xf02cd000) at kern/trap.c:242
+0xf01223c0 in ?? ()
+0xf0104b11 in syscall (syscallno=4027720640, a1=4026531744, a2=4027597131, a3=3, a4=0, a5=0) at kern/syscall.c:429
+0xf010469f in sys_env_destroy (envid=30) at kern/syscall.c:63
+env_destroy (e=0xf02cd000) at kern/env.c:508
+```
+
 ### ¿en qué cambia la función env_destroy() en este TP, respecto al TP anterior?
 
 ## sys_yield
