@@ -158,7 +158,18 @@ void duppage(envid_t dstenv, void *addr, bool readonly) {
 
 `memmove(code, mpentry_start, mpentry_end - mpentry_start);`
 
+Esa línea copia el código del archivo kern/mpentry.S a MPENTRY_PADDR. 
+Dicho código se encarga de activar el modo protegido de 32 bits.
+La dirección MPENTRY_PADDR cumple el requisito necesario para guardar instrucciones que se corran el modo real, que estar en los 2^16 bytes más bajos de la memoria física.
+
+
 ### ¿Para qué se usa la variable global mpentry_kstack? ¿Qué ocurriría si el espacio para este stack se reservara en el archivo kern/mpentry.S, de manera similar a bootstack en el archivo kern/entry.S?
+
+La variable mpentry_kstack es seteada por init.c  para indicarle a mpentry.S donde poner el stack pointer del CPU correspondiente.
+
+Al haber muchos CPUs, cada uno tiene su stack del Kernel correspondiente, dado que distintos CPUs podrían querer acceder al Kernel a la vez.
+Dado que kern/mpentry.S es el código que corre cada CPU al iniciar, si aquí se reservará espacio para el stack de manera similar a bootstack en el archivo kern/entry.S los stacks de los distintos CPUs se pisarían y sería imposible que cada uno tenga el suyo separado.
+
 
 ### En el archivo kern/mpentry.S se puede leer:
 
@@ -168,6 +179,8 @@ void duppage(envid_t dstenv, void *addr, bool readonly) {
  movl $(RELOC(entry_pgdir)), %eax
 ```
 - ¿Qué valor tendrá el registro %eip cuando se ejecute esa línea? Responder con redondeo a 12 bits, justificando desde qué región de memoria se está ejecutando este código.
+
+Redondeando a 12 bits, el valor del %eip al ejecutar esa línea será 0x7000. Esto ocurre porque el archivo kern/mpentry.S arranca corriendo en modo real, por lo que necesita estar en direcciones bajas.
 
 # Parte 4: Comunicación entre procesos
 
