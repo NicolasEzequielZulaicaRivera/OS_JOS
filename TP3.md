@@ -6,7 +6,61 @@
 
 ### al terminar un proceso su función umain() ¿dónde retoma la ejecución el kernel? Describir la secuencia de llamadas desde que termina umain() hasta que el kernel dispone del proceso.
 
+Al terminar `umain` continuará con la siguiente instrucción de `libmain` (donde fue llamada `umain`) que llamara a la funcion `exit`, que llamara a `sys_env_destroy(0)` donde el kernel retoma la ejecución.
+
+Luego, las secuencia de llamadas sera:
+```
+0xf01041e5 in trap (tf=0x0) at kern/trap.c:328
+0xf010414b in trap_dispatch (tf=0xf02cd000) at kern/trap.c:242
+0xf01223c0 in ?? ()
+0xf0104b11 in syscall (syscallno=4027720640, a1=4026531744, a2=4027597131, a3=3, a4=0, a5=0) at kern/syscall.c:429
+0xf010469f in sys_env_destroy (envid=30) at kern/syscall.c:63
+env_destroy (e=0xf02cd000) at kern/env.c:508
+```
+
 ### ¿en qué cambia la función env_destroy() en este TP, respecto al TP anterior?
+
+**Viejo:**
+```
+void
+env_destroy(struct Env *e)
+{
+	env_free(e);
+
+	cprintf("Destroyed the only environment - nothing more to do!\n");
+	while (1)
+		monitor(NULL);
+}
+```
+
+**Nuevo:**
+```
+void
+env_destroy(struct Env *e)
+{
+	// If e is currently running on other CPUs, we change its state to
+	// ENV_DYING. A zombie environment will be freed the next time
+	// it traps to the kernel.
+	if (e->env_status == ENV_RUNNING && curenv != e) {
+		e->env_status = ENV_DYING;
+		return;
+	}
+
+	env_free(e);
+
+	if (curenv == e) {
+		curenv = NULL;
+		sched_yield();
+	}
+}
+```
+
+La diferencia es que en el TP anterior habia un solo proceso, por lo que cuando se termina el proceso, el kernel se queda 'colgado'
+
+En cambio, en este TP tenemos multiples procesos y CPUS, por lo que cuando se termina un proceso, el kernel:
+    - 1. verifica si el proceso que termino se esta corriendo en otro CPU, en ese caso, lo setea como `ENV_DYING` y retorna
+    - 2. Libera el proceso
+    - 3. Si el proceso es el actual, invoca `sched_yield()` para que el kernel se mueva a otro proceso.
 
 ## sys_yield
 
@@ -45,15 +99,23 @@ All done in environment 00001002.
 [00001002] free env 00001002
 ```
 
+Se puede ver que cada vez que un proceso llama a `sys_yield` el scheduler pone a correr al proceso siguiente por lo que los prints se encuentran en intercalados.
+
 # Parte 2: Creación dinámica de procesos
 
 ## envid2env
 
 ### ¿Qué ocurre en JOS si un proceso llama a sys_env_destroy(0)?.
 
+Lo que ocurre es que el kernel destruye el proceso que llamo a la funcion.
+
+Un ejemplo se puede encontar en la funcion `exit` de lib/exit.c.
+
 ## dumbfork
 
 ### Si una página no es modificable en el padre ¿lo es en el hijo? En otras palabras: ¿se preserva, en el hijo, el flag de solo-lectura en las páginas copiadas?
+
+Si, no se preservan los flags, dado que se fuerzan los permisos `PTE_P|PTE_U|PTE_W` al duplicar las paginas.
 
 ### Mostrar, con código en espacio de usuario, cómo podría dumbfork() verificar si una dirección en el padre es de solo lectura, de tal manera que pudiera pasar como tercer parámetro a duppage() un booleano llamado readonly que indicase si la página es modificable o no:
 
@@ -62,9 +124,10 @@ envid_t dumbfork(void) {
     // ...
     for (addr = UTEXT; addr < end; addr += PGSIZE) {
         bool readonly;
-        //
-        // TAREA: dar valor a la variable readonly
-        //
+        readonly = !(
+            (uvpd[PGNUM(va)] & PTE_W) && 
+            (uvpt[PGNUM(va)] & PTE_W) 
+        );
         duppage(envid, addr, readonly);
     }
     // ...
@@ -76,23 +139,16 @@ Ayuda: usar las variables globales uvpd y/o uvpt.
 ```
 void duppage(envid_t dstenv, void *addr, bool readonly) {
     // Código original (simplificado): tres llamadas al sistema.
-    sys_page_alloc(dstenv, addr, PTE_P | PTE_U | PTE_W);
-    sys_page_map(dstenv, addr, 0, UTEMP, PTE_P | PTE_U | PTE_W);
+    perm = PTE_P | PTE_U | PTE_W;
+    if (readonly) perm &= ~PTE_W;
+
+    sys_page_alloc(dstenv, addr, perm);
+    sys_page_map(dstenv, addr, 0, UTEMP, perm);
 
     memmove(UTEMP, addr, PGSIZE);
     sys_page_unmap(0, UTEMP);
-
-    // Código nuevo: una llamada al sistema adicional para solo-lectura.
-    if (readonly) {
-        sys_page_map(dstenv, addr, dstenv, addr, PTE_P | PTE_U);
-    }
 }
 ```
-
-- Esta versión del código, no obstante, incrementa las llamadas al sistema que realiza duppage() de tres, a cuatro. Se pide mostrar una versión en el que se implemente la misma funcionalidad readonly, pero sin usar en ningún caso más de tres llamadas al sistema.
-
-Ayuda: Leer con atención la documentación de sys_page_map() en kern/syscall.c, en particular donde avisa que se devuelve error:
-> if (perm & PTE_W) is not zero, but srcva is read-only in srcenvid’s address space.
 
 # Parte 3: Ejecución en paralelo (multi-core)
 
@@ -132,25 +188,30 @@ if (r < 0)
 
 Se puede distinguir ya que`src` sera el envid del proceso que envía el mensaje si es correcto o 0 si hay error.
 
-# Parte 5: Manejo de page faults
+## ipc_try_send
 
-# Parte 6: Copy-on-write fork
+- qué cambios se necesitan en struct Env para la implementación (campos nuevos, y su tipo; campos cambiados, o eliminados, si los hay)
+
+- qué asignaciones de campos se harían en sys_ipc_send()
+
+- qué código se añadiría en sys_ipc_recv()
+
+- ¿existe posibilidad de deadlock?
+
+- ¿funciona que varios procesos (A₁, A₂, …) puedan enviar a B, y quedar cada uno bloqueado mientras B no consuma su mensaje? ¿en qué orden despertarían?
+
 
 ---
 
-- [ ] Parte 1
-    - [ ] env_return
-    - [ ] sys_yield
-- [ ] Parte 2
-    - [ ] envid2env
-    - [ ] dumbfork
+- [x] Parte 1
+    - [x] env_return
+    - [x] sys_yield
+- [x] Parte 2
+    - [x] envid2env
+    - [x] dumbfork
 - [ ] Parte 3
     - [ ] multicore_init
     - [ ] trap_init_percpu
 - [ ] Parte 4
-    - [ ] ipc_recv
+    - [x] ipc_recv
     - [ ] sys_ipc_try_send
-- [ ] Parte 5
-    - [ ] page_fault_handler*
-    - [ ] page_fault_handler_upcall*
-- [ ] Parte 6
