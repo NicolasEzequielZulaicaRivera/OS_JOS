@@ -67,8 +67,9 @@ struct Env {
 	int env_ipc_perm;		// Perm of page mapping received
 
 	// Desafio TP3
+	// Structures needed to implement a blocking ipc_send
 	bool env_ipc_sending;		// Env is blocked sending
-	envid_t env_ipc_to;		// envid of the receiver
+	envid_t env_ipc_to;			// envid of the receiver
 	envid_t env_ipc_senders_head;	// Head of the list of senders
 	envid_t env_ipc_senders_tail;	// Tail of the list of senders
 	struct Env * env_ipc_senders_next;	// Next sender in the list
@@ -77,7 +78,9 @@ struct Env {
 	// 
 	// Note 2: Note that an envs head/tail and next element belong to different lists
 	// 
-	// Note 3: We'll use the envs own env_id to mark absetence of a sender in the list
+	// Note 3: We'll use the envs own env_id to mark absence of a sender in the list
+	// Also, we could (and will) use the same tactic to mark env_ipc_sending using env_ipc_to
+	// but I think it's better to keep the flag
 };
 
 #endif // !JOS_INC_ENV_H

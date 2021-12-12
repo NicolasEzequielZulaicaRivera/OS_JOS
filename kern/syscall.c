@@ -285,6 +285,69 @@ sys_page_unmap(envid_t envid, void *va)
 	return 0;
 }
 
+int
+insert_env_ipc_sender( struct Env *env, envid_t sender_id )
+{
+	struct Env *sender;
+	if (envid2env(sender_id, &sender, 0) < 0)
+		return -E_BAD_ENV;
+
+	if( env->env_ipc_senders_head == env->env_id ){
+		// First sender
+		env->env_ipc_senders_head = sender_id;
+		env->env_ipc_senders_tail = sender_id;
+	} else {
+		// Add to tail
+		struct Env *tail_env;
+		if (envid2env(env->env_ipc_senders_tail, &tail_env, 0) < 0)
+			return -E_BAD_ENV;
+		tail_env->env_ipc_senders_next = sender;
+		env->env_ipc_senders_tail = sender_id;
+	}
+	return 0;
+}
+
+int
+remove_env_ipc_sender( struct Env *env, envid_t sender_id )
+{
+	if( env->env_ipc_senders_head == env->env_ipc_senders_tail ){
+		if( env->env_ipc_senders_head == env->env_id )
+			return 0; // List is empty
+			
+		// List has one element
+		// Set it as self to mark as empty
+		env->env_ipc_senders_head = env->env_ipc_senders_tail = env->env_id;
+		return 0;
+	}
+	// List has more than one element
+	struct Env *sender=NULL, *prev_sender=NULL;
+	if (envid2env(sender_id, &sender, 0) < 0)
+		return -E_BAD_ENV;
+	sender = prev_sender->env_ipc_senders_next;
+	while ( sender )
+	{
+		if( sender->env_id == sender_id )
+		{
+			// Found the sender
+			if( sender->env_id == env->env_ipc_senders_tail )
+			{
+				// Last sender
+				env->env_ipc_senders_tail = prev_sender->env_id;
+				prev_sender->env_ipc_senders_next = NULL;
+			}
+			else
+			{
+				// Not last sender
+				prev_sender->env_ipc_senders_next = sender->env_ipc_senders_next;
+			}
+			sender->env_ipc_senders_next = NULL;
+			return 0;
+		}
+		sender = sender->env_ipc_senders_next;
+	}
+	return 0;
+}
+
 // Try to send 'value' to the target env 'envid'.
 // If srcva < UTOP, then also send page currently mapped at 'srcva',
 // so that receiver gets a duplicate mapping of the same page.
@@ -377,6 +440,67 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	return 0;
 }
 
+// Try to receive a value from the sender list
+//
+// The send fails with a return value of -E_IPC_NOT_SEND if there
+// is no element on the sender list.
+//
+// If 'dstva' is < UTOP, then you are willing to receive a page of data.
+// 'dstva' is the virtual address at which the sent page should be mapped.
+//
+// This function only returns on error, but the system call will eventually
+// return 0 on success.
+// Return < 0 on error.  Errors are:
+//	-E_INVAL if dstva < UTOP but dstva is not page-aligned.
+static int
+sys_ipc_try_recv(void *dstva)
+{
+	if ((uint32_t) dstva < UTOP && (uint32_t) dstva % PGSIZE != 0)
+		return -E_INVAL;
+
+
+	if( curenv->env_ipc_senders_head == curenv->env_id )
+		return -E_IPC_NOT_SEND;
+
+	// Activate sender
+	struct Env *sender;
+	if (envid2env(curenv->env_ipc_senders_head, &sender, 0) < 0){
+		remove_env_ipc_sender(curenv, curenv->env_ipc_senders_head);
+		return -E_BAD_ENV;
+	}
+
+	sender->env_status = ENV_RUNNABLE;
+	sender->env_tf.tf_regs.reg_eax = 0;
+
+	// Block current environment
+
+	// curenv->env_ipc_recving = 1;
+	// Note: Sender is activated by reciever and neednt check if it is recieving
+	// On the other hand, if env is marked as recving, then another env might get to it first
+	curenv->env_ipc_dstva = dstva;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	
+	return 0;
+}
+
+
+static int
+sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
+{
+	int r;
+	if ((r = sys_ipc_try_send(envid, value, srcva, perm)) != -E_IPC_NOT_RECV)
+		return r;
+	
+	// Add current environment to targets sender list
+	struct Env *target;
+	if (envid2env(envid, &target, 0) < 0)
+		return -E_BAD_ENV;
+	insert_env_ipc_sender(target, curenv->env_id);
+	
+
+	return 0;
+}
+
 // Block until a value is ready.  Record that you want to receive
 // using the env_ipc_recving and env_ipc_dstva fields of struct Env,
 // mark yourself not runnable, and then give up the CPU.
@@ -436,6 +560,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_page_unmap(a1, (void *) a2);
 	case SYS_ipc_try_send:
 		return sys_ipc_try_send(a1, a2, (void *) a3, a4);
+	case SYS_ipc_try_recv:
+		return sys_ipc_try_recv((void *) a1);
+	case SYS_ipc_send:
+		return sys_ipc_send(a1, a2, (void *) a3, a4);
 	case SYS_ipc_recv:
 		return sys_ipc_recv((void *) a1);
 	case SYS_env_set_pgfault_upcall:
