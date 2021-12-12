@@ -37,20 +37,20 @@ pgfault(struct UTrapframe *utf)
 	// page to the old page's address.
 	// Hint:
 	//   You should make three system calls.
-	if (sys_page_alloc(thisenv->env_id, PFTEMP, PTE_P | PTE_U | PTE_COW) < 0)
+	if (sys_page_alloc(0, (void *) PFTEMP, PTE_P | PTE_U | PTE_W) < 0)
 		panic("pgfault handler: alloc error");
 
-	memmove(PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+	memmove((void *) PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
 
-	if (sys_page_map(thisenv->env_id,
-	                 ROUNDDOWN(addr, PGSIZE),
+	if (sys_page_map(0,
+	                 (void *) PFTEMP,
 	                 0,
-	                 UTEMP,
-	                 PTE_P | PTE_U | PTE_COW) < 0) {
+	                 (void *) ROUNDDOWN(addr, PGSIZE),
+	                 PTE_P | PTE_U | PTE_W) < 0) {
 		panic("pgfault handler dup_or_share:  map error");
 	}
 
-	if (sys_page_unmap(0, PFTEMP) < 0)
+	if (sys_page_unmap(0, (void *) PFTEMP) < 0)
 		panic("pgfault handler: unmap error");
 }
 
@@ -71,25 +71,22 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 4: Your code here.
-	int perm = uvpt[pn];
-	if (((perm & PTE_W) == PTE_W) || ((perm & PTE_COW) == PTE_COW)) {
-		perm = perm | PTE_COW;
-		perm = perm | ~PTE_W;
-	}
-	// Set to 0 all non-perm bits
-	perm = perm & (PTE_U | PTE_P | PTE_AVAIL | PTE_W | PTE_COW);
-
 	void *va = (void *) (pn * PGSIZE);
+	int perm = uvpt[pn] & (PTE_U | PTE_P | PTE_AVAIL | PTE_W | PTE_COW);
+	if (perm & PTE_W)
+		perm = (perm & ~PTE_W) | PTE_COW;
 
-
-	r = sys_page_map(0, va, envid, va, perm);
-	if (r < 0) {
+	// CHILD
+	if ((r = sys_page_map(0, va, envid, va, perm)) < 0)
 		return r;
+
+	// PARENT
+	if (perm & PTE_COW) {
+		if ((r = sys_page_map(0, va, 0, va, perm)) < 0)
+			return r;
 	}
 
-
-	r = sys_page_map(0, va, 0, va, perm);
-	return r;
+	return 0;
 }
 
 //
@@ -178,42 +175,23 @@ fork_v0(void)
 envid_t
 fork(void)
 {
-	// return fork_v0();
-
 	envid_t envid;
 	uint8_t *addr;
 	int r;
-	extern unsigned char end[];
-
+	extern void _pgfault_upcall(void);
 	set_pgfault_handler(pgfault);
 
-	// Allocate a new child environment.
 	envid = sys_exofork();
 	if (envid < 0)
 		panic("sys_exofork: %e", envid);
 	if (envid == 0) {
-		// We're the child.
-
-		envid = sys_getenvid();
-		thisenv = &envs[ENVX(envid)];
-		// Alloc user exception stack page
-		if ((r = sys_page_alloc(envid,
-		                        (void *) (UXSTACKTOP - PGSIZE),
-		                        PTE_P | PTE_U | PTE_W)) < 0)
-			panic("fork: alloc error");
-
-
-		set_pgfault_handler(pgfault);
-
-
-		cprintf("\n\nSoy el [%08x] (hijo) y no morí\n\n", thisenv->env_id);
-
-
+		// CHILD
+		thisenv = &envs[ENVX(sys_getenvid())];
 		return 0;
 	}
 
 
-	// We're the parent.
+	// PARENT
 	for (addr = (uint8_t *) 0; addr < (uint8_t *) UTOP; addr += PGSIZE)
 		if ((uvpd[PDX(addr)] & PTE_P) &&    // page table present
 		    (uvpt[PGNUM(addr)] & PTE_P) &&  // page present
@@ -230,12 +208,17 @@ fork(void)
 
 	duppage(envid, PGNUM(ROUNDDOWN(&addr, PGSIZE)));
 
+	// Set child's page fault handler
+	if ((r = sys_page_alloc(envid,
+	                        (void *) (UXSTACKTOP - PGSIZE),
+	                        PTE_P | PTE_U | PTE_W)) < 0)
+		panic("sys_page_alloc: %e", r);
+	if ((r = sys_env_set_pgfault_upcall(envid, _pgfault_upcall)) < 0)
+		panic("sys_env_set_pgfault_upcall: %e", r);
+
 	// Start the child environment running
 	if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
 		panic("sys_env_set_status: %e", r);
-
-	cprintf("\n\nSoy el [%08x] (padre) y no morí\n\n", thisenv->env_id);
-
 
 	return envid;
 }
