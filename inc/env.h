@@ -65,6 +65,19 @@ struct Env {
 	uint32_t env_ipc_value;		// Data value sent to us
 	envid_t env_ipc_from;		// envid of the sender
 	int env_ipc_perm;		// Perm of page mapping received
+
+	// Desafio TP3
+	bool env_ipc_sending;		// Env is blocked sending
+	envid_t env_ipc_to;		// envid of the receiver
+	envid_t env_ipc_senders_head;	// Head of the list of senders
+	envid_t env_ipc_senders_tail;	// Tail of the list of senders
+	struct Env * env_ipc_senders_next;	// Next sender in the list
+	// Note 1: I use envid_t instead of pointers for the head and tail as theyre simpler abstractions
+	// but rather use a pointer for the next element to allow for simpler iteration of the list
+	// 
+	// Note 2: Note that an envs head/tail and next element belong to different lists
+	// 
+	// Note 3: We'll use the envs own env_id to mark absetence of a sender in the list
 };
 
 #endif // !JOS_INC_ENV_H
