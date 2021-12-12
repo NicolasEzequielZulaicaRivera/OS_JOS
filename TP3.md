@@ -220,3 +220,6 @@ Si, para evitarlo, se puede:
 
 - ¿funciona que varios procesos (A₁, A₂, …) puedan enviar a B, y quedar cada uno bloqueado mientras B no consuma su mensaje? ¿en qué orden despertarían?
     - Si, despertarian en orden de llegada.
+
+- Otras cosideraciones
+    - Habria que avisarle a la lista de senders si el reciever es eliminado. ( en `env_destroy` )
