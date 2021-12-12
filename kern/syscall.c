@@ -496,7 +496,11 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	if (envid2env(envid, &target, 0) < 0)
 		return -E_BAD_ENV;
 	insert_env_ipc_sender(target, curenv->env_id);
-	
+
+	// Block current environment
+	curenv->env_ipc_sending = 1;
+	curenv->env_ipc_to = envid;
+	curenv->env_status = ENV_NOT_RUNNABLE;
 
 	return 0;
 }
