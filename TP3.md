@@ -190,28 +190,33 @@ Se puede distinguir ya que`src` sera el envid del proceso que envía el mensaje 
 
 ## ipc_try_send
 
+### cómo se podría implementar una función sys_ipc_send() (con los mismos parámetros que sys_ipc_try_send()) que sea bloqueante
+
+
+
 - qué cambios se necesitan en struct Env para la implementación (campos nuevos, y su tipo; campos cambiados, o eliminados, si los hay)
+
+    - Un `bool` para indicar si el env está bloqueado enviando.
+    - Un `envid_t` para indicar a que env envía. ( puede usarse tambien como flag para indicar si el env está bloqueado enviando)
+    - Una lista/cola de envs esperando para enviar. ( puede implementarse si los envs almacenan una referencia al siguiente en la lista, se puede optimizar la insercion guardando una referencia al ultimo en la lista)
 
 - qué asignaciones de campos se harían en sys_ipc_send()
 
+Primero se probaria un try_send, si eso fallara porque el env no esta esperando, entoces:
+    - se agreaga el env a la lista de espera del reciever
+    - se setea el id del reciever en el sender
+    - se asigna el sender como `ENV_NOT_RUNNABLE`
+
 - qué código se añadiría en sys_ipc_recv()
+
+Antes de setearse como recieving, chequea si hay algun proceso esperando para enviar.
+Si lo hay, entonces lo despierta y lo saca de la lista de espera.
 
 - ¿existe posibilidad de deadlock?
 
+Si, para evitarlo, se puede:
+    - Lanzar error si el env al que se quiere enviar esta bloqueado enviando. 
+    - Recorrer a quien esperan enviar los sucesivos enviroments y fallar si se generara una dependencia circular.
+
 - ¿funciona que varios procesos (A₁, A₂, …) puedan enviar a B, y quedar cada uno bloqueado mientras B no consuma su mensaje? ¿en qué orden despertarían?
-
-
----
-
-- [x] Parte 1
-    - [x] env_return
-    - [x] sys_yield
-- [x] Parte 2
-    - [x] envid2env
-    - [x] dumbfork
-- [ ] Parte 3
-    - [ ] multicore_init
-    - [ ] trap_init_percpu
-- [ ] Parte 4
-    - [x] ipc_recv
-    - [ ] sys_ipc_try_send
+    - Si, despertarian en orden de llegada.
