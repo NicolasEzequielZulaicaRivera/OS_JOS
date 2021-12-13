@@ -348,6 +348,23 @@ remove_env_ipc_sender( struct Env *env, envid_t sender_id )
 	return 0;
 }
 
+int
+ipc_set_send_pgdata(struct Env *env, void * srcva, int perm)
+{
+	// If srcva < UTOP, then also send page currently mapped at 'srcva',
+	// so that receiver gets a duplicate mapping of the same page.
+	void *dstva = env->env_ipc_dstva;
+	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP) {
+		if (sys_page_map(curenv->env_id, srcva, env->env_id, dstva, perm) <
+		    0)
+			return -E_NO_MEM;
+		env->env_ipc_perm = perm;
+	} else {
+		env->env_ipc_perm = 0;
+	}
+	return 0;
+}
+
 // Try to send 'value' to the target env 'envid'.
 // If srcva < UTOP, then also send page currently mapped at 'srcva',
 // so that receiver gets a duplicate mapping of the same page.
@@ -390,14 +407,13 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	struct Env *env;
+	struct Env *env; // receiver environment
 
 	//	-E_BAD_ENV if environment envid doesn't currently exist.
 	if (envid2env(envid, &env, 0) < 0)
 		return -E_BAD_ENV;
 
-	//	-E_IPC_NOT_RECV if envid is not currently blocked in
-	// sys_ipc_recv, 		or another environment managed to send first.
+	//	-E_IPC_NOT_RECV if envid is not currently blocked
 	if (!(env->env_ipc_recving))
 		return -E_IPC_NOT_RECV;
 
@@ -418,22 +434,14 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	        || ((perm & PTE_W) && !(*pte & PTE_W)))
 		return -E_INVAL;
 
-
-	// If srcva < UTOP, then also send page currently mapped at 'srcva',
-	// so that receiver gets a duplicate mapping of the same page.
-	void *dstva = env->env_ipc_dstva;
-	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP) {
-		if (sys_page_map(curenv->env_id, srcva, env->env_id, dstva, perm) <
-		    0)
-			return -E_NO_MEM;
-		env->env_ipc_perm = perm;
-	} else {
-		env->env_ipc_perm = 0;
-	}
-
-	env->env_ipc_recving = 0;
+	// Set message
+	if( ipc_set_send_pgdata( env, srcva, perm) < 0 )
+		return -E_NO_MEM;
 	env->env_ipc_value = value;
 	env->env_ipc_from = curenv->env_id;
+
+	// Set env fields
+	env->env_ipc_recving = 0;
 	env->env_status = ENV_RUNNABLE;
 	env->env_tf.tf_regs.reg_eax = 0;
 
@@ -458,7 +466,6 @@ sys_ipc_try_recv(void *dstva)
 	if ((uint32_t) dstva < UTOP && (uint32_t) dstva % PGSIZE != 0)
 		return -E_INVAL;
 
-
 	if( curenv->env_ipc_senders_head == curenv->env_id )
 		return -E_IPC_NOT_SEND;
 
@@ -472,14 +479,14 @@ sys_ipc_try_recv(void *dstva)
 	sender->env_status = ENV_RUNNABLE;
 	sender->env_tf.tf_regs.reg_eax = 0;
 
-	// Block current environment
-
-	// curenv->env_ipc_recving = 1;
-	// Note: Sender is activated by reciever and neednt check if it is recieving
-	// On the other hand, if env is marked as recving, then another env might get to it first
+	// Load message
+	// as an env cannot send and recv at the same time, we can use the same fields to store the sender's data
 	curenv->env_ipc_dstva = dstva;
-	curenv->env_status = ENV_NOT_RUNNABLE;
-	
+	if( ipc_set_send_pgdata( curenv, sender->env_ipc_dstva, sender->env_ipc_perm) < 0 )
+		return -E_NO_MEM;
+	curenv->env_ipc_value = sender->env_ipc_value;
+	curenv->env_ipc_from = sender->env_id;
+
 	return 0;
 }
 
@@ -502,7 +509,13 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	curenv->env_ipc_to = envid;
 	curenv->env_status = ENV_NOT_RUNNABLE;
 
-	return 0;
+	// Store message
+	// as an env cannot send and recv at the same time, we can use the same fields to store the sender's data
+	curenv->env_ipc_dstva = srcva;
+	curenv->env_ipc_perm = perm;
+	curenv->env_ipc_value = value;
+
+	return -E_UNSPECIFIED; // return value should be set outside
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -519,7 +532,10 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 static int
 sys_ipc_recv(void *dstva)
 {
-	// LAB 4: Your code here.
+	int r;
+	if ((r = sys_ipc_try_recv(dstva)) != -E_IPC_NOT_SEND)
+		return r;	
+	
 	if ((uint32_t) dstva < UTOP && (uint32_t) dstva % PGSIZE != 0)
 		return -E_INVAL;
 
@@ -527,8 +543,7 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
 
-
-	return 0;
+	return -E_UNSPECIFIED; // return value should be set outside
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
