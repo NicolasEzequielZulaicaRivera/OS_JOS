@@ -63,7 +63,7 @@ main1()
 	}
 	// Parent
 	cprintf("parent environment\n");
-	message = ipc_recv(&parent, NULL, NULL);
+	message = ipc_recv(&child, NULL, NULL);
 	cprintf("parent received message from child: %d\n", message);
 	return;
 }
@@ -92,7 +92,7 @@ main2()
 	// Parent
 	for(int i = 0; i < 10000; i++){}
 	cprintf("parent environment\n");
-	message = ipc_recv(&parent, NULL, NULL);
+	message = ipc_recv(&child, NULL, NULL);
 	cprintf("parent received message from child: %d\n", message);
 	return;
 }
@@ -115,16 +115,47 @@ main3()
 		for(int i = 0; i < 10000; i++){}
 		cprintf("child environment\n");
 		message = 666;
-		sys_page_alloc(thisenv->env_id, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
-		memcpy(TEMP_ADDR, str1, strlen(str1) + 1);
-		ipc_send(parent, message, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
-		cprintf("child environment sent message: %d {%s}\n", message, TEMP_ADDR);
+		sys_page_alloc(thisenv->env_id, TEMP_ADDR_CHILD, PTE_P | PTE_W | PTE_U);
+		memcpy(TEMP_ADDR_CHILD, str2, strlen(str2) + 1);
+		ipc_send(parent, message, TEMP_ADDR_CHILD, PTE_P | PTE_W | PTE_U);
+		cprintf("child environment sent message: %d {%s}\n", message, TEMP_ADDR_CHILD);
 		return;
 	}
 	// Parent
 	cprintf("parent environment\n");
-	message = ipc_recv(&parent, NULL, NULL);
-	cprintf("parent received message from child: %d\n", message);
+	message = ipc_recv(&child, TEMP_ADDR, 0);
+	cprintf("parent received message from child: %d {%s} \n", message, TEMP_ADDR);
+	return;
+}
+
+void
+main4()
+{
+	// New Style
+	// Blocking Send + Store
+	envid_t parent = thisenv->env_id;
+	envid_t child = fork();
+	int message = 0;
+
+	if ( child < 0 ){
+		cprintf("fork failed\n");
+		return;
+	}
+	if( child == 0 ){
+		// Child
+		cprintf("child environment\n");
+		message = 666;
+		sys_page_alloc(thisenv->env_id, TEMP_ADDR_CHILD, PTE_P | PTE_W | PTE_U);
+		memcpy(TEMP_ADDR_CHILD, str2, strlen(str2) + 1);
+		ipc_send(parent, message, TEMP_ADDR_CHILD, PTE_P | PTE_W | PTE_U);
+		cprintf("child environment sent message: %d {%s}\n", message, TEMP_ADDR_CHILD);
+		return;
+	}
+	// Parent
+	for(int i = 0; i < 10000; i++){}
+	cprintf("parent environment\n");
+	message = ipc_recv(&child, TEMP_ADDR, 0);
+	cprintf("parent received message from child: %d {%s} \n", message, TEMP_ADDR);
 	return;
 }
 
