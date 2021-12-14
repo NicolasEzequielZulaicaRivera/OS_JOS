@@ -349,18 +349,18 @@ remove_env_ipc_sender( struct Env *env, envid_t sender_id )
 }
 
 int
-ipc_set_send_pgdata(struct Env *env, void * srcva, int perm)
+ipc_set_send_pgdata(struct Env *reciever, struct Env *sender, void * srcva, int perm)
 {
 	// If srcva < UTOP, then also send page currently mapped at 'srcva',
 	// so that receiver gets a duplicate mapping of the same page.
-	void *dstva = env->env_ipc_dstva;
+	void *dstva = reciever->env_ipc_dstva;
 	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP) {
-		if (sys_page_map(curenv->env_id, srcva, env->env_id, dstva, perm) <
+		if (sys_page_map(sender->env_id, srcva, reciever->env_id, dstva, perm) <
 		    0)
 			return -E_NO_MEM;
-		env->env_ipc_perm = perm;
+		reciever->env_ipc_perm = perm;
 	} else {
-		env->env_ipc_perm = 0;
+		reciever->env_ipc_perm = 0;
 	}
 	return 0;
 }
@@ -407,14 +407,14 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	struct Env *env; // receiver environment
+	struct Env *reciever; // receiver environment
 
 	//	-E_BAD_ENV if environment envid doesn't currently exist.
-	if (envid2env(envid, &env, 0) < 0)
+	if (envid2env(envid, &reciever, 0) < 0)
 		return -E_BAD_ENV;
 
 	//	-E_IPC_NOT_RECV if envid is not currently blocked
-	if (!(env->env_ipc_recving))
+	if (!(reciever->env_ipc_recving))
 		return -E_IPC_NOT_RECV;
 
 	pte_t *pte;
@@ -435,15 +435,15 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		return -E_INVAL;
 
 	// Set message
-	if( ipc_set_send_pgdata( env, srcva, perm) < 0 )
+	if( ipc_set_send_pgdata( reciever, curenv, srcva, perm) < 0 )
 		return -E_NO_MEM;
-	env->env_ipc_value = value;
-	env->env_ipc_from = curenv->env_id;
+	reciever->env_ipc_value = value;
+	reciever->env_ipc_from = curenv->env_id;
 
 	// Set env fields
-	env->env_ipc_recving = 0;
-	env->env_status = ENV_RUNNABLE;
-	env->env_tf.tf_regs.reg_eax = 0;
+	reciever->env_ipc_recving = 0;
+	reciever->env_status = ENV_RUNNABLE;
+	reciever->env_tf.tf_regs.reg_eax = 0;
 
 	return 0;
 }
@@ -482,7 +482,7 @@ sys_ipc_try_recv(void *dstva)
 	// Load message
 	// as an env cannot send and recv at the same time, we can use the same fields to store the sender's data
 	curenv->env_ipc_dstva = dstva;
-	if( ipc_set_send_pgdata( curenv, sender->env_ipc_dstva, sender->env_ipc_perm) < 0 )
+	if( ipc_set_send_pgdata( curenv, sender,sender->env_ipc_dstva, sender->env_ipc_perm) < 0 )
 		return -E_NO_MEM;
 	curenv->env_ipc_value = sender->env_ipc_value;
 	curenv->env_ipc_from = sender->env_id;

@@ -30,12 +30,10 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 
 	int r = sys_ipc_recv(dstva);
 	if (r < 0) {
-		cprintf("\t ipc_recv failed %e\n", r);
 		if (from_env_store != NULL)
 			*from_env_store = 0;
 		if (perm_store != NULL)
 			*perm_store = 0;
-		cprintf("\t ---\n");
 		return r;
 	}
 

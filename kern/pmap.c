@@ -581,6 +581,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 
 	// If there is no page mapped at va
 	if (!pte || !(*pte & PTE_P)) {
+		cprintf("page_lookup: no page mapped at va\n");
 		return NULL;
 	}
 
