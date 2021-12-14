@@ -481,6 +481,7 @@ sys_ipc_try_recv(void *dstva)
 		remove_env_ipc_sender(curenv, curenv->env_ipc_senders_head);
 		return -E_BAD_ENV;
 	}
+	remove_env_ipc_sender(curenv, curenv->env_ipc_senders_head);
 
 	sender->env_status = ENV_RUNNABLE;
 	sender->env_tf.tf_regs.reg_eax = 0;

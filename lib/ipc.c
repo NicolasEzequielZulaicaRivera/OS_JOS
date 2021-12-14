@@ -23,7 +23,6 @@ int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
 	// LAB 4: Your code here.
-	cprintf("[%08x] ipc_recv \n", thisenv->env_id);
 	void *dstva = pg;
 	if (pg == NULL)
 		dstva = (void *) UTOP;
@@ -36,8 +35,6 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 			*perm_store = 0;
 		return r;
 	}
-
-	cprintf("\t ipc_recv succeded\n");
 
 	if (from_env_store != NULL)
 		*from_env_store = thisenv->env_ipc_from;
@@ -59,7 +56,6 @@ void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	int r;
-	cprintf("[%08x] ipc_send: %08x\n", thisenv->env_id, to_env);
 
 	if( pg == NULL )
 		pg = (void *) UTOP;

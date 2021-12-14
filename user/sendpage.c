@@ -302,8 +302,8 @@ main9()
 		message = 666;
 		sys_page_alloc(thisenv->env_id, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
 		memcpy(TEMP_ADDR, str1, strlen(str1) + 1);
+		cprintf("parent environment sending message: %d {%s}\n", message, TEMP_ADDR);
 		ipc_send(child, message, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
-		cprintf("child environment sent message: %d {%s}\n", message, TEMP_ADDR);
 
 		return;
 	}
@@ -311,7 +311,7 @@ main9()
 	sys_yield();
 	cprintf("child environment\n");
 	message = ipc_recv(&parent, TEMP_ADDR_CHILD, 0);
-	cprintf("parent received message from child: %d {%s} \n", message, TEMP_ADDR_CHILD);
+	cprintf("child received message from parent: %d {%s} \n", message, TEMP_ADDR_CHILD);
 	return;
 }
 
@@ -327,20 +327,54 @@ main10()
 		cprintf("fork failed\n");
 		return;
 	}
-	if( child == 0 ){
-		// Child
-		cprintf("child environment\n");
+	if( child != 0 ){
+		// Parent
+		cprintf("parent environment\n");
 		message = 666;
-		sys_page_alloc(thisenv->env_id, TEMP_ADDR_CHILD, PTE_P | PTE_W | PTE_U);
-		memcpy(TEMP_ADDR_CHILD, str2, strlen(str2) + 1);
-		ipc_send(parent, message, TEMP_ADDR_CHILD, PTE_P | PTE_W | PTE_U);
-		cprintf("child environment sent message: %d {%s}\n", message, TEMP_ADDR_CHILD);
+		sys_page_alloc(thisenv->env_id, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
+		memcpy(TEMP_ADDR, str1, strlen(str1) + 1);
+		ipc_send(child, message, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
+		cprintf("child environment sent message: %d {%s}\n", message, TEMP_ADDR);
+
 		return;
 	}
-	// Parent
-	cprintf("parent environment\n");
-	message = ipc_recv(&child, TEMP_ADDR, 0);
-	cprintf("parent received message from child: %d {%s} \n", message, TEMP_ADDR);
+	// Child
+	cprintf("child environment\n");
+	message = ipc_recv(&parent, TEMP_ADDR_CHILD, 0);
+	cprintf("parent received message from child: %d {%s} \n", message, TEMP_ADDR_CHILD);
+	return;
+}
+
+void
+main11()
+{
+	envid_t parent = thisenv->env_id;
+	envid_t child = fork();
+	int message = 0;
+	int NMESS = 10;
+
+	if ( child < 0 ){
+		cprintf("fork failed\n");
+		return;
+	}
+	if( child != 0 ){
+		// Parent
+		for(int i = 0; i < NMESS; i++){
+			sys_page_alloc(thisenv->env_id, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
+			memcpy(TEMP_ADDR, str1, strlen(str1) + 1);
+			cprintf("## PARNT >>> %d {%s}\n", i, TEMP_ADDR);
+			ipc_send(child, i, TEMP_ADDR, PTE_P | PTE_W | PTE_U);
+			cprintf("## PARNT --- \n");
+		}
+
+		return;
+	}
+	// Child
+	for(int i = 0; i < NMESS; i++){
+		cprintf("** CHILD --- \n");
+		message = ipc_recv(&parent, TEMP_ADDR_CHILD, 0);
+		cprintf("** CHILD <<< %d {%s} \n", message, TEMP_ADDR_CHILD);
+	}
 	return;
 }
 
@@ -348,5 +382,5 @@ main10()
 void
 umain(int argc, char **argv)
 {
-	main9();
+	main0();
 }
