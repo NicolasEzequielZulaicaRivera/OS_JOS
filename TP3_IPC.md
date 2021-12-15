@@ -84,9 +84,65 @@ No contemplamos otras opciones, nos parece que la mejor solucion es FIFO y la co
 
 Podriamos querer utilizarlo si nos podemos permitir perder mensajes o no nos podemos permitir quedarnos bloqueados.
 
+Por Ejemplo:
+
+Tenemos un juego, calcular el estado es rapido pero el renderizado es lento y no queremos que afecte el input de datos. \
+nos podemos permitir perder un par de frames, por lo que el renderizado se realiza en un proceso aparte \
+De este modo siempre se acepta el input y se mantiene un estado cercano al ultimo.
+
+pseudocodigo:
+
+`main env`
+```
+render(state){
+    // Derivates task to renderer env
+    trySend( renderer, state )
+}
+start(){
+    state = initialState
+    loop {
+        input = getInput()
+        state = getNextState( state, input )
+        render( state )
+    }
+}
+```
+`renderer env`
+```
+render(state){
+    // Actualy renders on screen
+}
+renderLoop(){
+    loop {
+        state = recv()
+        render(state)
+    }
+}
+```
+
 ##### `recv` no bloqueante
 
 Podriamos querer utilizarlo si queremos recibir mensajes y hacer calculos en un mismo env, \
 donde nos conviene hacer calculos en vez estar bloqueado esperando mensajes, \
 y luego de realizar cierta cantidad de calculos podemos leer todos los mensajes encolados.
 
+Por Ejemplo:
+
+
+pseudocodigo:
+
+`main env`
+```
+main(){
+    
+    queue : []
+    
+    loop{
+
+        while( (sender, payload) = tryRecv() ){
+            queue.push( (sender, payload) )
+        }
+    }
+
+}
+```
