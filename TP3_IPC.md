@@ -82,7 +82,7 @@ No contemplamos otras opciones, nos parece que la mejor solucion es FIFO y la co
 
 ##### `send` no bloqueante
 
-Podriamos querer utilizarlo si nos podemos permitir perder mensajes o no nos podemos permitir quedarnos bloqueados. \
+Podriamos querer utilizarlo si nos podemos permitir perder mensajes o no nos podemos permitir quedarnos bloqueados.
 
 ##### `recv` no bloqueante
 
