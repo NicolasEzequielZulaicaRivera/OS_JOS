@@ -140,7 +140,7 @@ main(){
     
     loop{
 
-        while( payload ) = tryRecv() ){
+        while( payload = tryRecv() ){
             queue.push( payload )
         }
         
