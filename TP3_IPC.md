@@ -136,12 +136,23 @@ pseudocodigo:
 main(){
     
     queue : []
+    state = initialState
     
     loop{
 
-        while( (sender, payload) = tryRecv() ){
-            queue.push( (sender, payload) )
+        while( payload ) = tryRecv() ){
+            queue.push( payload )
         }
+        
+        if( queue.isEmpty ) data = recv()
+        else data = queue.pop()
+        
+        result = processData( data )
+        
+        state = updateState( state, result )
+        
+        log( state )
+        
     }
 
 }
