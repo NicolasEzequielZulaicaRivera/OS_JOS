@@ -201,10 +201,13 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 }
 
 int
-_sys_page_map(struct Env *src_env, void *srcva, struct Env *dst_env, void *dstva, int perm)
+_sys_page_map(struct Env *src_env,
+              void *srcva,
+              struct Env *dst_env,
+              void *dstva,
+              int perm)
 {
-	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W |
-	              0x800)) ||  // Add COW permison for part 6
+	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W | PTE_COW)) ||
 	    !(perm & (PTE_P | PTE_U)))
 		return -E_INVAL;
 
@@ -224,7 +227,7 @@ _sys_page_map(struct Env *src_env, void *srcva, struct Env *dst_env, void *dstva
 
 	if (page_insert(dst_env->env_pgdir, src_page, dstva, perm) < 0)
 		return -E_NO_MEM;
-	
+
 	return 0;
 }
 
@@ -292,13 +295,13 @@ sys_page_unmap(envid_t envid, void *va)
 }
 
 int
-insert_env_ipc_sender( struct Env *env, envid_t sender_id )
+insert_env_ipc_sender(struct Env *env, envid_t sender_id)
 {
 	struct Env *sender;
 	if (envid2env(sender_id, &sender, 0) < 0)
 		return -E_BAD_ENV;
 
-	if( env->env_ipc_senders_head == env->env_id ){
+	if (env->env_ipc_senders_head == env->env_id) {
 		// First sender
 		env->env_ipc_senders_head = sender_id;
 		env->env_ipc_senders_tail = sender_id;
@@ -314,37 +317,34 @@ insert_env_ipc_sender( struct Env *env, envid_t sender_id )
 }
 
 int
-remove_env_ipc_sender( struct Env *env, envid_t sender_id )
+remove_env_ipc_sender(struct Env *env, envid_t sender_id)
 {
-	if( env->env_ipc_senders_head == env->env_ipc_senders_tail ){
-		if( env->env_ipc_senders_head == env->env_id )
-			return 0; // List is empty
-			
+	if (env->env_ipc_senders_head == env->env_ipc_senders_tail) {
+		if (env->env_ipc_senders_head == env->env_id)
+			return 0;  // List is empty
+
 		// List has one element
 		// Set it as self to mark as empty
-		env->env_ipc_senders_head = env->env_ipc_senders_tail = env->env_id;
+		env->env_ipc_senders_head = env->env_ipc_senders_tail =
+		        env->env_id;
 		return 0;
 	}
 	// List has more than one element
-	struct Env *sender=NULL, *prev_sender=NULL;
+	struct Env *sender = NULL, *prev_sender = NULL;
 	if (envid2env(sender_id, &sender, 0) < 0)
 		return -E_BAD_ENV;
 	sender = prev_sender->env_ipc_senders_next;
-	while ( sender )
-	{
-		if( sender->env_id == sender_id )
-		{
+	while (sender) {
+		if (sender->env_id == sender_id) {
 			// Found the sender
-			if( sender->env_id == env->env_ipc_senders_tail )
-			{
+			if (sender->env_id == env->env_ipc_senders_tail) {
 				// Last sender
 				env->env_ipc_senders_tail = prev_sender->env_id;
 				prev_sender->env_ipc_senders_next = NULL;
-			}
-			else
-			{
+			} else {
 				// Not last sender
-				prev_sender->env_ipc_senders_next = sender->env_ipc_senders_next;
+				prev_sender->env_ipc_senders_next =
+				        sender->env_ipc_senders_next;
 			}
 			sender->env_ipc_senders_next = NULL;
 			return 0;
@@ -355,14 +355,13 @@ remove_env_ipc_sender( struct Env *env, envid_t sender_id )
 }
 
 int
-ipc_set_send_pgdata(struct Env *reciever, struct Env *sender, void * srcva, int perm)
+ipc_set_send_pgdata(struct Env *reciever, struct Env *sender, void *srcva, int perm)
 {
 	// If srcva < UTOP, then also send page currently mapped at 'srcva',
 	// so that receiver gets a duplicate mapping of the same page.
 	void *dstva = reciever->env_ipc_dstva;
 	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP) {
-		if (_sys_page_map(sender, srcva, reciever, dstva, perm) <
-		    0)
+		if (_sys_page_map(sender, srcva, reciever, dstva, perm) < 0)
 			return -E_NO_MEM;
 		reciever->env_ipc_perm = perm;
 	} else {
@@ -413,7 +412,7 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	struct Env *reciever; // receiver environment
+	struct Env *reciever;  // receiver environment
 
 	//	-E_BAD_ENV if environment envid doesn't currently exist.
 	if (envid2env(envid, &reciever, 0) < 0)
@@ -441,7 +440,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		return -E_INVAL;
 
 	// Set message
-	if( ipc_set_send_pgdata( reciever, curenv, srcva, perm) < 0 )
+	if (ipc_set_send_pgdata(reciever, curenv, srcva, perm) < 0)
 		return -E_NO_MEM;
 	reciever->env_ipc_value = value;
 	reciever->env_ipc_from = curenv->env_id;
@@ -472,12 +471,12 @@ sys_ipc_try_recv(void *dstva)
 	if ((uint32_t) dstva < UTOP && (uint32_t) dstva % PGSIZE != 0)
 		return -E_INVAL;
 
-	if( curenv->env_ipc_senders_head == curenv->env_id )
+	if (curenv->env_ipc_senders_head == curenv->env_id)
 		return -E_IPC_NOT_SEND;
 
 	// Activate sender
 	struct Env *sender;
-	if (envid2env(curenv->env_ipc_senders_head, &sender, 0) < 0){
+	if (envid2env(curenv->env_ipc_senders_head, &sender, 0) < 0) {
 		remove_env_ipc_sender(curenv, curenv->env_ipc_senders_head);
 		return -E_BAD_ENV;
 	}
@@ -489,7 +488,10 @@ sys_ipc_try_recv(void *dstva)
 	// Load message
 	// as an env cannot send and recv at the same time, we can use the same fields to store the sender's data
 	curenv->env_ipc_dstva = dstva;
-	if( ipc_set_send_pgdata( curenv, sender,sender->env_ipc_dstva, sender->env_ipc_perm) < 0 )
+	if (ipc_set_send_pgdata(curenv,
+	                        sender,
+	                        sender->env_ipc_dstva,
+	                        sender->env_ipc_perm) < 0)
 		return -E_NO_MEM;
 	curenv->env_ipc_value = sender->env_ipc_value;
 	curenv->env_ipc_from = sender->env_id;
@@ -504,7 +506,7 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	int r;
 	if ((r = sys_ipc_try_send(envid, value, srcva, perm)) != -E_IPC_NOT_RECV)
 		return r;
-	
+
 	// Add current environment to targets sender list
 	struct Env *target;
 	if (envid2env(envid, &target, 0) < 0)
@@ -522,7 +524,7 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	curenv->env_ipc_perm = perm;
 	curenv->env_ipc_value = value;
 
-	return -E_UNSPECIFIED; // return value should be set outside
+	return -E_UNSPECIFIED;  // return value should be set outside
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -541,8 +543,8 @@ sys_ipc_recv(void *dstva)
 {
 	int r;
 	if ((r = sys_ipc_try_recv(dstva)) != -E_IPC_NOT_SEND)
-		return r;	
-	
+		return r;
+
 	if ((uint32_t) dstva < UTOP && (uint32_t) dstva % PGSIZE != 0)
 		return -E_INVAL;
 
@@ -550,7 +552,7 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
 
-	return -E_UNSPECIFIED; // return value should be set outside
+	return -E_UNSPECIFIED;  // return value should be set outside
 }
 
 // Dispatches to the correct kernel function, passing the arguments.

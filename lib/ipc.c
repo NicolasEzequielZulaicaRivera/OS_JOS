@@ -57,10 +57,10 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	int r;
 
-	if( pg == NULL )
+	if (pg == NULL)
 		pg = (void *) UTOP;
 
-	if( (r = sys_ipc_send(to_env, val, pg, perm)) < 0 )
+	if ((r = sys_ipc_send(to_env, val, pg, perm)) < 0)
 		panic("ipc_send: error %e", r);
 }
 
