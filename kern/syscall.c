@@ -128,6 +128,22 @@ sys_env_set_status(envid_t envid, int status)
 	return 0;
 }
 
+// Set envid's trap frame to 'tf'.
+// tf is modified to make sure that user environments always run at code
+// protection level 3 (CPL 3) with interrupts enabled.
+//
+// Returns 0 on success, < 0 on error.  Errors are:
+//	-E_BAD_ENV if environment envid doesn't currently exist,
+//		or the caller doesn't have permission to change envid.
+static int
+sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
+{
+	// LAB 5: Your code here.
+	// Remember to check whether the user has supplied us with a good
+	// address!
+	panic("sys_env_set_trapframe not implemented");
+}
+
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
 // Env's 'env_pgfault_upcall' field.  When 'envid' causes a page fault, the
 // kernel will push a fault record onto the exception stack, then branch to
@@ -227,9 +243,12 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
-	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) ||
+
+	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W |
+	              0x800)) ||  // Add COW permison for part 6
 	    !(perm & (PTE_P | PTE_U)))
 		return -E_INVAL;
+
 
 	if ((uint32_t) srcva >= UTOP || (uint32_t) srcva % PGSIZE != 0 ||
 	    (uint32_t) dstva >= UTOP || (uint32_t) dstva % PGSIZE != 0)
@@ -249,7 +268,7 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 		return -E_INVAL;
 
 	struct Env *dst_env;
-	if (envid2env(dstenvid, &dst_env, 1) < 0)
+	if (envid2env(dstenvid, &dst_env, 0) < 0)
 		return -E_BAD_ENV;
 
 	if (page_insert(dst_env->env_pgdir, src_page, dstva, perm) < 0)
@@ -327,7 +346,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	struct Env *env;
 
 	//	-E_BAD_ENV if environment envid doesn't currently exist.
-	if (envid2env(envid, &env, 1) < 0)
+	if (envid2env(envid, &env, 0) < 0)
 		return -E_BAD_ENV;
 
 	//	-E_IPC_NOT_RECV if envid is not currently blocked in
