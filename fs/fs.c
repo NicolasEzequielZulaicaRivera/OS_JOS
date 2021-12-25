@@ -69,16 +69,15 @@ alloc_block(void)
 	bool found_free_block = false;
 	uint32_t blockno = 0;
 	while (!found_free_block && (blockno < super->s_nblocks)) {
-		if (!found_free_block) {
+		if (!found_free_block)
 			blockno++;
-		}
 		found_free_block = block_is_free(blockno);
 	}
 
-	if (!found_free_block) {
+	if (!found_free_block)
 		return -E_NO_DISK;
-	}
 
+	// Mark the block in-use by flipping it in the bitmap
 	bitmap[blockno / 32] &= ~(1 << (blockno % 32));
 
 	char *bitmap_addr = (char *) bitmap;
@@ -156,30 +155,26 @@ static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
 	// LAB 5: Your code here.
-	if (filebno >= NDIRECT + NINDIRECT) {
+	if (filebno >= NDIRECT + NINDIRECT)
 		return -E_INVAL;
-	}
 
 	// Direct entry
-	if (filebno < NDIRECT) {
+	if (filebno < NDIRECT)
 		*ppdiskbno = &(f->f_direct[filebno]);
-	}
-	// Indirect
 	else {
+		// Indirect entry
+
 		// If indirect block is not allocated
 		if (f->f_indirect == 0) {
-			if (!alloc) {
+			if (!alloc)
 				return -E_NOT_FOUND;
-			}
 
 			int new_block = alloc_block();
-			if (new_block == -E_NO_DISK) {
+			if (new_block == -E_NO_DISK)
 				return -E_NO_DISK;
-			}
 
 			f->f_indirect = new_block;
 		}
-
 
 		uint32_t *indirect_block_addr = diskaddr(f->f_indirect);
 
