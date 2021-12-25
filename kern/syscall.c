@@ -216,6 +216,37 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	return 0;
 }
 
+int
+_sys_page_map(struct Env *src_env,
+              void *srcva,
+              struct Env *dst_env,
+              void *dstva,
+              int perm)
+{
+	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W | PTE_COW)) ||
+	    !(perm & (PTE_P | PTE_U)))
+		return -E_INVAL;
+
+
+	if ((uint32_t) srcva >= UTOP || (uint32_t) srcva % PGSIZE != 0 ||
+	    (uint32_t) dstva >= UTOP || (uint32_t) dstva % PGSIZE != 0)
+		return -E_INVAL;
+
+	pte_t *src_pte;
+	struct PageInfo *src_page =
+	        page_lookup(src_env->env_pgdir, srcva, &src_pte);
+	if (src_page == NULL)
+		return -E_INVAL;
+
+	if ((perm & PTE_W) && ((*src_pte) & PTE_W) == 0)
+		return -E_INVAL;
+
+	if (page_insert(dst_env->env_pgdir, src_page, dstva, perm) < 0)
+		return -E_NO_MEM;
+
+	return 0;
+}
+
 // Map the page of memory at 'srcva' in srcenvid's address space
 // at 'dstva' in dstenvid's address space with permission 'perm'.
 // Perm has the same restrictions as in sys_page_alloc, except
@@ -244,37 +275,15 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 
 	// LAB 4: Your code here.
 
-	if ((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W |
-	              0x800)) ||  // Add COW permison for part 6
-	    !(perm & (PTE_P | PTE_U)))
-		return -E_INVAL;
-
-
-	if ((uint32_t) srcva >= UTOP || (uint32_t) srcva % PGSIZE != 0 ||
-	    (uint32_t) dstva >= UTOP || (uint32_t) dstva % PGSIZE != 0)
-		return -E_INVAL;
-
 	struct Env *src_env;
 	if (envid2env(srcenvid, &src_env, 1) < 0)
 		return -E_BAD_ENV;
 
-	pte_t *src_pte;
-	struct PageInfo *src_page =
-	        page_lookup(src_env->env_pgdir, srcva, &src_pte);
-	if (src_page == NULL)
-		return -E_INVAL;
-
-	if ((perm & PTE_W) && ((*src_pte) & PTE_W) == 0)
-		return -E_INVAL;
-
 	struct Env *dst_env;
-	if (envid2env(dstenvid, &dst_env, 0) < 0)
+	if (envid2env(dstenvid, &dst_env, 1) < 0)
 		return -E_BAD_ENV;
 
-	if (page_insert(dst_env->env_pgdir, src_page, dstva, perm) < 0)
-		return -E_NO_MEM;
-
-	return 0;
+	return _sys_page_map(src_env, srcva, dst_env, dstva, perm);
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
@@ -376,7 +385,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	// so that receiver gets a duplicate mapping of the same page.
 	void *dstva = env->env_ipc_dstva;
 	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP) {
-		if (sys_page_map(curenv->env_id, srcva, env->env_id, dstva, perm) <
+		if (_sys_page_map(curenv, srcva, env, dstva, perm) <
 		    0)
 			return -E_NO_MEM;
 		env->env_ipc_perm = perm;
