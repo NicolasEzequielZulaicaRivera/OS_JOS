@@ -385,8 +385,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	// so that receiver gets a duplicate mapping of the same page.
 	void *dstva = env->env_ipc_dstva;
 	if ((uint32_t) srcva < UTOP && (uint32_t) dstva < UTOP) {
-		if (_sys_page_map(curenv, srcva, env, dstva, perm) <
-		    0)
+		if (_sys_page_map(curenv, srcva, env, dstva, perm) < 0)
 			return -E_NO_MEM;
 		env->env_ipc_perm = perm;
 	} else {
