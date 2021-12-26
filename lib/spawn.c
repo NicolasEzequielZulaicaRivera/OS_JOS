@@ -323,5 +323,18 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	void *va;
+	for (va = (void *) UTEXT; va < (void *) UTOP; va += PGSIZE) {
+		if (!(uvpd[PDX(va)] & PTE_P))
+			continue;  // No PD Entry
+
+		int perm = uvpt[PGNUM(va)] & (PTE_U | PTE_P | PTE_AVAIL |
+		                              PTE_W | PTE_COW | PTE_SHARE);
+		if (!(~perm & (PTE_P | PTE_U | PTE_SHARE)))
+			continue;  // No PT Entry / Not Shared / Not User
+
+		if ((sys_page_map(0, va, child, va, perm) < 0))
+			return -E_NO_MEM;
+	}
 	return 0;
 }

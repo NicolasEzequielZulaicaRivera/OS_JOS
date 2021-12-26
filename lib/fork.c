@@ -72,7 +72,12 @@ duppage(envid_t envid, unsigned pn)
 
 	// LAB 4: Your code here.
 	void *va = (void *) (pn * PGSIZE);
-	int perm = uvpt[pn] & (PTE_U | PTE_P | PTE_AVAIL | PTE_W | PTE_COW);
+	int perm = uvpt[pn] &
+	           (PTE_U | PTE_P | PTE_AVAIL | PTE_W | PTE_COW | PTE_SHARE);
+
+	if (perm & PTE_SHARE)
+		return sys_page_map(0, va, envid, va, perm);
+
 	if (perm & PTE_W)
 		perm = (perm & ~PTE_W) | PTE_COW;
 
