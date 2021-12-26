@@ -452,7 +452,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	            (page_lookup(curenv->env_pgdir, srcva, &pte) == NULL))
 	        //	-E_INVAL if (perm & PTE_W), but srcva is read-only in
 	        // the 		current environment's address space.
-	        || ((perm & PTE_W) && !(*pte & PTE_W)))
+	        // || ((perm & PTE_W) && !(*pte & PTE_W))
+)
 		return -E_INVAL;
 
 	// Set message
