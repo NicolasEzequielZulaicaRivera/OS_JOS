@@ -142,12 +142,9 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// bytes than requested.
 	// LAB 5: Your code here
 	int r;
-	n = (size_t) MIN(
-	        n, (size_t) fsipcbuf.write.req_buf);  // TODO: could write in loop rather than limiting to buf size
 
 	fsipcbuf.write.req_fileid = fd->fd_file.id;
-
-	fsipcbuf.write.req_n = n;
+	fsipcbuf.write.req_n = n;  // TODO: check max size. Fsreq_write
 	memmove(fsipcbuf.write.req_buf, buf, n);
 
 	if ((r = fsipc(FSREQ_WRITE, NULL)) < 0)
