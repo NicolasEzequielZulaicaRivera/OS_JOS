@@ -330,7 +330,7 @@ copy_shared_pages(envid_t child)
 
 		int perm = uvpt[PGNUM(va)] & (PTE_U | PTE_P | PTE_AVAIL |
 		                              PTE_W | PTE_COW | PTE_SHARE);
-		if ((~perm & (PTE_P | PTE_U | PTE_SHARE)))
+		if (~perm & (PTE_P | PTE_U | PTE_SHARE))
 			continue;  // No PT Entry / Not Shared / Not User
 
 		if ((sys_page_map(0, va, child, va, perm) < 0))
