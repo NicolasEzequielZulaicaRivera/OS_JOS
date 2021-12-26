@@ -439,21 +439,19 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		return -E_IPC_NOT_RECV;
 
 	pte_t *pte;
-	if (
-	        //	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
-	        ((srcva < (void *) UTOP) && ((uint32_t) srcva % PGSIZE != 0))
-	        //	-E_INVAL if srcva < UTOP and perm is inappropriate
-	        //		(see sys_page_alloc).
-	        || ((srcva < (void *) UTOP) &&
-	            (perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)))
-	        //	-E_INVAL if srcva < UTOP but srcva is not mapped in the
-	        // caller's 		address space.
-	        || ((srcva < (void *) UTOP) &&
-	            (page_lookup(curenv->env_pgdir, srcva, &pte) == NULL))
-	        //	-E_INVAL if (perm & PTE_W), but srcva is read-only in
-	        // the 		current environment's address space.
-	        // || ((perm & PTE_W) && !(*pte & PTE_W))
-)
+	if ((srcva < (void *) UTOP) &&
+	    (
+	            //	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
+	            ((uint32_t) srcva % PGSIZE != 0)
+	            //	-E_INVAL if srcva < UTOP and perm is inappropriate
+	            // (see sys_page_alloc).
+	            || (perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W))
+	            //	-E_INVAL if srcva < UTOP but srcva is not mapped in the
+	            // caller's address space.
+	            || (page_lookup(curenv->env_pgdir, srcva, &pte) == NULL)
+	            //	-E_INVAL if (perm & PTE_W), but srcva is read-only in
+	            // the current environment's address space.
+	            || ((perm & PTE_W) && !(*pte & PTE_W))))
 		return -E_INVAL;
 
 	// Set message
