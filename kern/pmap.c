@@ -580,9 +580,8 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	}
 
 	// If there is no page mapped at va
-	if (!pte || !(*pte & PTE_P)) {
+	if (!pte || !(*pte & PTE_P))
 		return NULL;
-	}
 
 	return pa2page(PTE_ADDR(*pte));
 }

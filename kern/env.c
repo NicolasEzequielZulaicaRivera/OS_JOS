@@ -279,6 +279,13 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	env_free_list = e->env_link;
 	*newenv_store = e;
 
+	// Desafio TP3
+	e->env_ipc_sending = 0;
+	e->env_ipc_to = e->env_id;
+	e->env_ipc_senders_head = e->env_id;
+	e->env_ipc_senders_tail = e->env_id;
+	e->env_ipc_senders_next = NULL;
+
 	cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 	return 0;
 }
