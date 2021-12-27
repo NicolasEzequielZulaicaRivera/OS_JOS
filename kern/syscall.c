@@ -360,11 +360,13 @@ remove_env_ipc_sender(struct Env *env, envid_t sender_id)
 	struct Env *sender = NULL, *prev_sender = NULL;
 	if (envid2env(sender_id, &sender, 0) < 0)
 		return -E_BAD_ENV;
-	sender = prev_sender->env_ipc_senders_next;
 	while (sender) {
 		if (sender->env_id == sender_id) {
 			// Found the sender
-			if (sender->env_id == env->env_ipc_senders_tail) {
+			if (sender->env_id == env->env_ipc_senders_head) {
+				// First sender
+				env->env_ipc_senders_head = sender->env_ipc_senders_next->env_id;
+			} else if (sender->env_id == env->env_ipc_senders_tail) {
 				// Last sender
 				env->env_ipc_senders_tail = prev_sender->env_id;
 				prev_sender->env_ipc_senders_next = NULL;
