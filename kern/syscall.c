@@ -365,7 +365,8 @@ remove_env_ipc_sender(struct Env *env, envid_t sender_id)
 			// Found the sender
 			if (sender->env_id == env->env_ipc_senders_head) {
 				// First sender
-				env->env_ipc_senders_head = sender->env_ipc_senders_next->env_id;
+				env->env_ipc_senders_head =
+				        sender->env_ipc_senders_next->env_id;
 			} else if (sender->env_id == env->env_ipc_senders_tail) {
 				// Last sender
 				env->env_ipc_senders_tail = prev_sender->env_id;
