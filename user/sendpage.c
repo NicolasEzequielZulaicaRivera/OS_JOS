@@ -592,9 +592,54 @@ main15()
 	return;
 }
 
+void main16()
+{
+	// Test various senders
+	// Middle gets deleted
+	envid_t parent = thisenv->env_id;
+	int NMESS = 3;
+	int message = 0;
+
+	envid_t child_1 = fork();
+	if ( child_1 < 0 ) return;
+	if( child_1 == 0 ){
+		// Child 1
+		cprintf("[ CH 1 ]\n");
+		ipc_send(parent, 1, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_2 = fork();
+	if ( child_2 < 0 ) return;
+	if( child_2 == 0 ){
+		// Child 2
+		cprintf("[ CH 2 ]\n");
+		ipc_send(parent, 2, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_3 = fork();
+	if ( child_3 < 0 ) return;
+	if( child_3 == 0 ){
+		// Child 3
+		cprintf("[ CH 3 ]\n");
+		ipc_send(parent, 3, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	cprintf("[ PARENT ]\n");
+
+	// Delete self
+	sys_env_destroy(0);
+
+	return;
+}
 
 void
 umain(int argc, char **argv)
 {
-	main15();
+	main0();
 }

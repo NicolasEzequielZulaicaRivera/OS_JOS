@@ -52,6 +52,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 //   Use sys_yield() to be CPU-friendly.
 //   If 'pg' is null, pass sys_ipc_try_send a value that it will understand
 //   as meaning "no page".  (Zero is not the right value.)
+//
 void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
@@ -60,8 +61,8 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	if (pg == NULL)
 		pg = (void *) UTOP;
 
-	if ((r = sys_ipc_send(to_env, val, pg, perm)) < 0)
-		panic("ipc_send: error %e", r);
+	if ((r = sys_ipc_send(to_env, val, pg, perm)) < 0 && r != -E_IPC_NOT_RECV)
+			panic("ipc_send: %e", r);
 }
 
 // Find the first environment of the given type.  We'll use this to
