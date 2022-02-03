@@ -295,70 +295,6 @@ sys_page_unmap(envid_t envid, void *va)
 }
 
 int
-insert_env_ipc_sender(struct Env *env, envid_t sender_id)
-{
-	struct Env *sender;
-	if (envid2env(sender_id, &sender, 0) < 0)
-		return -E_BAD_ENV;
-
-	if (env->env_ipc_senders_head == env->env_id) {
-		// First sender
-		env->env_ipc_senders_head = sender_id;
-		env->env_ipc_senders_tail = sender_id;
-	} else {
-		// Add to tail
-		struct Env *tail_env;
-		if (envid2env(env->env_ipc_senders_tail, &tail_env, 0) < 0)
-			return -E_BAD_ENV;
-		tail_env->env_ipc_senders_next = sender;
-		env->env_ipc_senders_tail = sender_id;
-	}
-	return 0;
-}
-
-int
-remove_env_ipc_sender(struct Env *env, envid_t sender_id)
-{
-	if (env->env_ipc_senders_head == env->env_ipc_senders_tail) {
-		if (env->env_ipc_senders_head == env->env_id)
-			return 0;  // List is empty
-
-		// List has one element
-		// Set it as self to mark as empty
-		env->env_ipc_senders_head = env->env_ipc_senders_tail =
-		        env->env_id;
-		return 0;
-	}
-	// List has more than one element
-	struct Env *sender = NULL, *prev_sender = NULL;
-	if (envid2env(sender_id, &sender, 0) < 0)
-		return -E_BAD_ENV;
-	sender = prev_sender->env_ipc_senders_next;
-	while (sender) {
-		if (sender->env_id == sender_id) {
-			// Found the sender
-			if (sender->env_id == env->env_ipc_senders_head) {
-				// First sender
-				env->env_ipc_senders_head =
-				        sender->env_ipc_senders_next->env_id;
-			} else if (sender->env_id == env->env_ipc_senders_tail) {
-				// Last sender
-				env->env_ipc_senders_tail = prev_sender->env_id;
-				prev_sender->env_ipc_senders_next = NULL;
-			} else {
-				// Not last sender
-				prev_sender->env_ipc_senders_next =
-				        sender->env_ipc_senders_next;
-			}
-			sender->env_ipc_senders_next = NULL;
-			return 0;
-		}
-		sender = sender->env_ipc_senders_next;
-	}
-	return 0;
-}
-
-int
 ipc_set_send_pgdata(struct Env *reciever, struct Env *sender, void *srcva, int perm)
 {
 	// If srcva < UTOP, then also send page currently mapped at 'srcva',
@@ -528,7 +464,7 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	curenv->env_ipc_perm = perm;
 	curenv->env_ipc_value = value;
 
-	return -E_UNSPECIFIED;  // return value should be set outside
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -556,7 +492,7 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
 
-	return -E_UNSPECIFIED;  // return value should be set outside
+	return 0;
 }
 
 // Dispatches to the correct kernel function, passing the arguments.

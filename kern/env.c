@@ -453,6 +453,112 @@ env_create(uint8_t *binary, enum EnvType type)
 	load_icode(env, binary);
 }
 
+int
+insert_env_ipc_sender(struct Env *env, envid_t sender_id)
+{
+	struct Env *sender;
+	if (envid2env(sender_id, &sender, 0) < 0)
+		return -E_BAD_ENV;
+
+	if (env->env_ipc_senders_head == env->env_id) {
+		// First sender
+		env->env_ipc_senders_head = sender_id;
+		env->env_ipc_senders_tail = sender_id;
+	} else {
+		// Add to tail
+		struct Env *tail_env;
+		if (envid2env(env->env_ipc_senders_tail, &tail_env, 0) < 0)
+			return -E_BAD_ENV;
+		tail_env->env_ipc_senders_next = sender;
+		env->env_ipc_senders_tail = sender_id;
+	}
+	return 0;
+}
+
+int
+remove_env_ipc_sender(struct Env *env, envid_t sender_id)
+{
+	if (env->env_ipc_senders_head == env->env_ipc_senders_tail) {
+		if (env->env_ipc_senders_head == env->env_id)
+			return 0;  // List is empty
+
+		// List has one element
+		// Set it as self to mark as empty
+		env->env_ipc_senders_head = env->env_ipc_senders_tail =
+		        env->env_id;
+		return 0;
+	}
+	// List has more than one element
+	struct Env *sender = NULL, *prev_sender = NULL;
+	if (envid2env(sender_id, &sender, 0) < 0)
+		return -E_BAD_ENV;
+	while (sender) {
+		if (sender->env_id == sender_id) {
+			// Found the sender
+			if (sender->env_id == env->env_ipc_senders_head) {
+				// First sender
+				env->env_ipc_senders_head =
+				        sender->env_ipc_senders_next->env_id;
+			} else if (sender->env_id == env->env_ipc_senders_tail) {
+				// Last sender
+				env->env_ipc_senders_tail = prev_sender->env_id;
+				prev_sender->env_ipc_senders_next = NULL;
+			} else {
+				// Not last sender
+				prev_sender->env_ipc_senders_next =
+				        sender->env_ipc_senders_next;
+			}
+			sender->env_ipc_senders_next = NULL;
+			return 0;
+		}
+		sender = sender->env_ipc_senders_next;
+	}
+	return 0;
+}
+
+void
+env_remove_ipc_send(struct Env *e)
+{
+	// Remove the env from the list of senders
+	struct Env *reciever = NULL;
+	if (envid2env(e->env_ipc_to, &reciever, 0) < 0)
+		return;
+	remove_env_ipc_sender(reciever, e->env_id);
+}
+void
+env_alert_ipc_sender_rec(struct Env *sender)
+{
+	if (!sender)
+		return;
+
+	sender->env_status = ENV_RUNNABLE;
+	sender->env_tf.tf_regs.reg_eax = -E_IPC_NOT_RECV;
+
+	struct Env *next_sender = sender->env_ipc_senders_next;
+
+	sender->env_ipc_sending = 0;
+	sender->env_ipc_to = sender->env_id;
+	sender->env_ipc_senders_next = NULL;
+
+	env_alert_ipc_sender_rec_rec(next_sender);
+}
+void
+env_remove_ipc_recv(struct Env *e)
+{
+	// Alert the senders that the receiver has died
+	struct Env *sender = NULL;
+	if (envid2env(e->env_ipc_senders_head, &sender, 0) < 0)
+		return;
+	env_alert_ipc_sender_rec(sender);
+}
+
+void
+env_remove_ipc(struct Env *e)
+{
+	env_remove_ipc_send(e);
+	env_remove_ipc_recv(e);
+}
+
 //
 // Frees env e and all memory it uses.
 //
@@ -513,6 +619,9 @@ env_free(struct Env *e)
 void
 env_destroy(struct Env *e)
 {
+	// Handle cleanup of ipc events dependent on this env
+	env_remove_ipc(e);
+
 	// If e is currently running on other CPUs, we change its state to
 	// ENV_DYING. A zombie environment will be freed the next time
 	// it traps to the kernel.
