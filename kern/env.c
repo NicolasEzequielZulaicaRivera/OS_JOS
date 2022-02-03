@@ -490,8 +490,9 @@ remove_env_ipc_sender(struct Env *env, envid_t sender_id)
 	}
 	// List has more than one element
 	struct Env *sender = NULL, *prev_sender = NULL;
-	if (envid2env(sender_id, &sender, 0) < 0)
+	if (envid2env(env->env_ipc_senders_head, &sender, 0) < 0)
 		return -E_BAD_ENV;
+	
 	while (sender) {
 		if (sender->env_id == sender_id) {
 			// Found the sender
@@ -511,6 +512,7 @@ remove_env_ipc_sender(struct Env *env, envid_t sender_id)
 			sender->env_ipc_senders_next = NULL;
 			return 0;
 		}
+		prev_sender = sender;
 		sender = sender->env_ipc_senders_next;
 	}
 	return 0;
@@ -521,9 +523,11 @@ env_remove_ipc_send(struct Env *e)
 {
 	// Remove the env from the list of senders
 	struct Env *reciever = NULL;
+	if ( e->env_ipc_to == e->env_id )
+		return;
 	if (envid2env(e->env_ipc_to, &reciever, 0) < 0)
 		return;
-	remove_env_ipc_sender(reciever, e->env_id);
+	if(reciever) remove_env_ipc_sender(reciever, e->env_id);
 }
 void
 env_alert_ipc_sender_rec(struct Env *sender)
@@ -540,13 +544,15 @@ env_alert_ipc_sender_rec(struct Env *sender)
 	sender->env_ipc_to = sender->env_id;
 	sender->env_ipc_senders_next = NULL;
 
-	env_alert_ipc_sender_rec_rec(next_sender);
+	env_alert_ipc_sender_rec(next_sender);
 }
 void
 env_remove_ipc_recv(struct Env *e)
 {
 	// Alert the senders that the receiver has died
 	struct Env *sender = NULL;
+	if(e->env_ipc_senders_head == e->env_id)
+		return;
 	if (envid2env(e->env_ipc_senders_head, &sender, 0) < 0)
 		return;
 	env_alert_ipc_sender_rec(sender);

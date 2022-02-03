@@ -378,9 +378,223 @@ main11()
 	return;
 }
 
+int waity( int loops, int ops ) {
+	// can be reasonably expected to help in ordering operations
+	int z = 0;
+	for ( int i = 0; i < loops; i++ ) {
+		for ( int j = 0; j < ops; j++ ) {
+			z++;
+		}
+		sys_yield();
+	}
+	return z;
+}
+
+void
+main12()
+{
+	envid_t parent = thisenv->env_id;
+	int NMESS = 3;
+	int message = 0;
+
+	envid_t child_1 = fork();
+	if ( child_1 < 0 ) return;
+	if( child_1 == 0 ){
+		// Child 1
+		cprintf("[ CH 1 ]\n");
+		ipc_send(parent, 1, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_2 = fork();
+	if ( child_2 < 0 ) return;
+	if( child_2 == 0 ){
+		// Child 2
+		cprintf("[ CH 2 ]\n");
+		ipc_send(parent, 2, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_3 = fork();
+	if ( child_3 < 0 ) return;
+	if( child_3 == 0 ){
+		// Child 3
+		cprintf("[ CH 3 ]\n");
+		ipc_send(parent, 3, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	cprintf("[ PARENT ]\n");
+	for(int i = 0; i < NMESS; i++){
+		message = ipc_recv(&parent, TEMP_ADDR, 0);
+		cprintf("> %d \n", message);
+	}
+
+	return;
+}
+
+void
+main13()
+{
+	// Test various senders
+	// Firts gets deleted
+	envid_t parent = thisenv->env_id;
+	int NMESS = 3;
+	int message = 0;
+
+	envid_t child_1 = fork();
+	if ( child_1 < 0 ) return;
+	if( child_1 == 0 ){
+		// Child 1
+		cprintf("[ CH 1 ]\n");
+		ipc_send(parent, 1, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_2 = fork();
+	if ( child_2 < 0 ) return;
+	if( child_2 == 0 ){
+		// Child 2
+		cprintf("[ CH 2 ]\n");
+		ipc_send(parent, 2, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_3 = fork();
+	if ( child_3 < 0 ) return;
+	if( child_3 == 0 ){
+		// Child 3
+		cprintf("[ CH 3 ]\n");
+		ipc_send(parent, 3, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	cprintf("[ PARENT ]\n");
+
+	// Delete child 1
+	sys_env_destroy(child_1);
+
+	for(int i = 0; i < NMESS; i++){
+		message = ipc_recv(&parent, TEMP_ADDR, 0);
+		cprintf("> %d \n", message);
+	}
+
+	return;
+}
+
+void
+main14()
+{
+	// Test various senders
+	// Middle gets deleted
+	envid_t parent = thisenv->env_id;
+	int NMESS = 3;
+	int message = 0;
+
+	envid_t child_1 = fork();
+	if ( child_1 < 0 ) return;
+	if( child_1 == 0 ){
+		// Child 1
+		cprintf("[ CH 1 ]\n");
+		ipc_send(parent, 1, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_2 = fork();
+	if ( child_2 < 0 ) return;
+	if( child_2 == 0 ){
+		// Child 2
+		cprintf("[ CH 2 ]\n");
+		ipc_send(parent, 2, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_3 = fork();
+	if ( child_3 < 0 ) return;
+	if( child_3 == 0 ){
+		// Child 3
+		cprintf("[ CH 3 ]\n");
+		ipc_send(parent, 3, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	cprintf("[ PARENT ]\n");
+
+	// Delete child 2
+	sys_env_destroy(child_2);
+
+	for(int i = 0; i < NMESS; i++){
+		message = ipc_recv(&parent, TEMP_ADDR, 0);
+		cprintf("> %d \n", message);
+	}
+
+	return;
+}
+
+void
+main15()
+{
+	// Test various senders
+	// Last gets deleted
+	envid_t parent = thisenv->env_id;
+	int NMESS = 3;
+	int message = 0;
+
+	envid_t child_1 = fork();
+	if ( child_1 < 0 ) return;
+	if( child_1 == 0 ){
+		// Child 1
+		cprintf("[ CH 1 ]\n");
+		ipc_send(parent, 1, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_2 = fork();
+	if ( child_2 < 0 ) return;
+	if( child_2 == 0 ){
+		// Child 2
+		cprintf("[ CH 2 ]\n");
+		ipc_send(parent, 2, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	envid_t child_3 = fork();
+	if ( child_3 < 0 ) return;
+	if( child_3 == 0 ){
+		// Child 3
+		cprintf("[ CH 3 ]\n");
+		ipc_send(parent, 3, NULL, 0);
+		return;
+	}
+	waity(10,100);
+
+	cprintf("[ PARENT ]\n");
+
+	// Delete child 3
+	sys_env_destroy(child_3);
+
+	for(int i = 0; i < NMESS; i++){
+		message = ipc_recv(&parent, TEMP_ADDR, 0);
+		cprintf("> %d \n", message);
+	}
+
+	return;
+}
+
 
 void
 umain(int argc, char **argv)
 {
-	main0();
+	main15();
 }
