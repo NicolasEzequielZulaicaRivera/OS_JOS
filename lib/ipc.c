@@ -62,7 +62,7 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 		pg = (void *) UTOP;
 
 	if ((r = sys_ipc_send(to_env, val, pg, perm)) < 0 && r != -E_IPC_NOT_RECV)
-			panic("ipc_send: %e", r);
+		panic("ipc_send: %e", r);
 }
 
 // Find the first environment of the given type.  We'll use this to

@@ -492,7 +492,7 @@ remove_env_ipc_sender(struct Env *env, envid_t sender_id)
 	struct Env *sender = NULL, *prev_sender = NULL;
 	if (envid2env(env->env_ipc_senders_head, &sender, 0) < 0)
 		return -E_BAD_ENV;
-	
+
 	while (sender) {
 		if (sender->env_id == sender_id) {
 			// Found the sender
@@ -523,11 +523,12 @@ env_remove_ipc_send(struct Env *e)
 {
 	// Remove the env from the list of senders
 	struct Env *reciever = NULL;
-	if ( e->env_ipc_to == e->env_id )
+	if (e->env_ipc_to == e->env_id)
 		return;
 	if (envid2env(e->env_ipc_to, &reciever, 0) < 0)
 		return;
-	if(reciever) remove_env_ipc_sender(reciever, e->env_id);
+	if (reciever)
+		remove_env_ipc_sender(reciever, e->env_id);
 }
 void
 env_alert_ipc_sender_rec(struct Env *sender)
@@ -551,7 +552,7 @@ env_remove_ipc_recv(struct Env *e)
 {
 	// Alert the senders that the receiver has died
 	struct Env *sender = NULL;
-	if(e->env_ipc_senders_head == e->env_id)
+	if (e->env_ipc_senders_head == e->env_id)
 		return;
 	if (envid2env(e->env_ipc_senders_head, &sender, 0) < 0)
 		return;
