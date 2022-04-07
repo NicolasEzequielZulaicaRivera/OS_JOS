@@ -1,4 +1,4 @@
-# IPC bloqueante
+## Desafio: IPC bloqueante
 
 En este challenge se realizará una modificación al código existente de JOS para que ambas syscalls relacionadas con el mecanismo IPC sean bloqueantes.
 
@@ -8,9 +8,9 @@ La implementación debería ser consistente con las siguientes interfaces:
     - `int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);`
     - `void ipc_send(envid_t to_env, uint32_t val, void *pg, int perm);`
 
-## Preguntas
+### Preguntas
 
-### ¿Se pueden mantener ambas interfaces (tanto para user como para kernel), y solamente cambiar la implementación? ¿Por qué?
+#### ¿Se pueden mantener ambas interfaces (tanto para user como para kernel), y solamente cambiar la implementación? ¿Por qué?
 
 Si, se pueden mantener ambas interfaces tanto para user como para kernel. \
 Todos los parametros necesarios estan presentes y en modo kernel tenemos todas las herramientas necesarias para implementarlo. \
@@ -21,7 +21,7 @@ Algunos de los problemas que podrian surigir y sus soluciones son:
 - Tiene un env permiso para modificar a otro ?
 > Estando en modo kernel podemos modificar cualquier cosa
 
-### Como se pregunta en la tarea: sys_ipc_try_send: ¿Cuáles son los posibles deadlocks? ¿Cuáles son esos escenarios, y cómo se pueden solventar?
+#### Como se pregunta en la tarea: sys_ipc_try_send: ¿Cuáles son los posibles deadlocks? ¿Cuáles son esos escenarios, y cómo se pueden solventar?
 
 Habiendo agregado las funcionalidades de Enviar y Recibir mensajes puede haber 2 origenes para un deadlock:
 
@@ -40,7 +40,7 @@ Un caso particular de deadlock es cuando dos envs tratan de enviarse mensajes en
     - Retornar error directamente
     - Recorrer la cadena de envios para comprobar si se forma una cadena, en cuyo caso, se retorna error
 
-### ¿Cuáles son los cambios que se necesitan hacer en el struct Env?
+#### ¿Cuáles son los cambios que se necesitan hacer en el struct Env?
 
 ```
 // Structures needed to implement a blocking ipc_send
@@ -51,13 +51,13 @@ envid_t env_ipc_senders_tail;	// Tail of the list of senders
 struct Env * env_ipc_senders_next;	// Next sender in the list
 ```
 
-### ¿Es necesario alguna estructura de datos extra?
+#### ¿Es necesario alguna estructura de datos extra?
 
 Si y No,
 Si porque se usa una nueva estructura, una cola de envs esperando para enviar un mensaje al env.
 No porque esta cola esta embebida en el array de envs preexistente mediante los nuevos campos de los env 
 
-### Tener en cuenta las responsabilidades de cada syscall, es decir, ¿cómo dividirlas?
+#### Tener en cuenta las responsabilidades de cada syscall, es decir, ¿cómo dividirlas?
 
 - `ipc_send`
 > Si el receptor esta escuchando, se encarga de enviarle el mensaje y despertarlo \
@@ -67,18 +67,18 @@ No porque esta cola esta embebida en el array de envs preexistente mediante los 
 > Si hay algun emisor esperando, se encarga de aceptar su mensaje y despertarlo \
 > Si no, se encarga de marcarse como que esta escuchando y bloquearse hasta ser despertado
 
-### ¿Qué implementación es más efeciente en cuanto al uso de los recursos del sistema? (por ejemplo, cantidad de context switch realizados)
+#### ¿Qué implementación es más efeciente en cuanto al uso de los recursos del sistema? (por ejemplo, cantidad de context switch realizados)
 
 La nueva es mas eficiente, en la vieja habia un loop que intentaba mandar mensajes hasta conseguirlo. \
 Esto causa que el proceso emisor consuma recursos cuando no es necesario, si el proceso no envia durante la duracion de su quantum, se podria haber ahorrado no solo ese quantum si no que tambien el context switch, es mas aunque haya enviado podria haber malgastado tiempo dentro del loop.
 
-### ¿Cuáles fueron las nuevas estructuras de datos utilizadas? ¿Por qué? ¿Qué otras opciones contemplaron?
+#### ¿Cuáles fueron las nuevas estructuras de datos utilizadas? ¿Por qué? ¿Qué otras opciones contemplaron?
 
 Usamos cola de envs esperando para enviar un mensaje.
 Porque era simple y conserva el orden de llegada.
 No contemplamos otras opciones, nos parece que la mejor solucion es FIFO y la cola esta hecha para eso.
 
-### ¿Existe algún escenario o caso de uso en el cual se desee tener una implementación no bloqueante de alguna de las dos syscalls? Ejemplificar, y de ser posible implementar programas de usuario que lo muestren.
+#### ¿Existe algún escenario o caso de uso en el cual se desee tener una implementación no bloqueante de alguna de las dos syscalls? Ejemplificar, y de ser posible implementar programas de usuario que lo muestren.
 
 ##### `send` no bloqueante
 

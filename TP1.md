@@ -1,8 +1,6 @@
-TP1: Memoria virtual en JOS
-===========================
+# TP1: Memoria virtual en JOS
 
-boot_alloc_pos
---------------
+## boot_alloc_pos
 
 ```
 Program Headers:
@@ -33,8 +31,7 @@ Value returned is $1 = (void *) 0xf0113000
 ```
 
 
-page_alloc
-----------
+## page_alloc
 
 ### ¿en qué se diferencia page2pa() de page2kva()?
 **page2pa()**: Obtiene la dirección física de un puntero a un struct PageInfo

@@ -1,10 +1,12 @@
-# Parte 0: Múltiples CPUs
+# TP3
 
-# Parte 1: Planificador y múltiples procesos
+## Parte 0: Múltiples CPUs
 
-## env_return
+## Parte 1: Planificador y múltiples procesos
 
-### al terminar un proceso su función umain() ¿dónde retoma la ejecución el kernel? Describir la secuencia de llamadas desde que termina umain() hasta que el kernel dispone del proceso.
+### env_return
+
+#### al terminar un proceso su función umain() ¿dónde retoma la ejecución el kernel? Describir la secuencia de llamadas desde que termina umain() hasta que el kernel dispone del proceso.
 
 Al terminar `umain` continuará con la siguiente instrucción de `libmain` (donde fue llamada `umain`) que llamara a la funcion `exit`, que llamara a `sys_env_destroy(0)` donde el kernel retoma la ejecución.
 
@@ -18,7 +20,7 @@ Luego, las secuencia de llamadas sera:
 env_destroy (e=0xf02cd000) at kern/env.c:508
 ```
 
-### ¿en qué cambia la función env_destroy() en este TP, respecto al TP anterior?
+#### ¿en qué cambia la función env_destroy() en este TP, respecto al TP anterior?
 
 **Viejo:**
 ```
@@ -62,9 +64,9 @@ En cambio, en este TP tenemos multiples procesos y CPUS, por lo que cuando se te
     - 2. Libera el proceso
     - 3. Si el proceso es el actual, invoca `sched_yield()` para que el kernel se mueva a otro proceso.
 
-## sys_yield
+### sys_yield
 
-### Leer y estudiar el código del programa user/yield.c. Cambiar la función i386_init() para lanzar tres instancias de dicho programa, y mostrar y explicar la salida de make qemu-nox.
+#### Leer y estudiar el código del programa user/yield.c. Cambiar la función i386_init() para lanzar tres instancias de dicho programa, y mostrar y explicar la salida de make qemu-nox.
 
 ```
 [00000000] new env 00001000
@@ -101,23 +103,23 @@ All done in environment 00001002.
 
 Se puede ver que cada vez que un proceso llama a `sys_yield` el scheduler pone a correr al proceso siguiente por lo que los prints se encuentran en intercalados.
 
-# Parte 2: Creación dinámica de procesos
+## Parte 2: Creación dinámica de procesos
 
-## envid2env
+### envid2env
 
-### ¿Qué ocurre en JOS si un proceso llama a sys_env_destroy(0)?.
+#### ¿Qué ocurre en JOS si un proceso llama a sys_env_destroy(0)?.
 
 Lo que ocurre es que el kernel destruye el proceso que llamo a la funcion.
 
 Un ejemplo se puede encontar en la funcion `exit` de lib/exit.c.
 
-## dumbfork
+### dumbfork
 
-### Si una página no es modificable en el padre ¿lo es en el hijo? En otras palabras: ¿se preserva, en el hijo, el flag de solo-lectura en las páginas copiadas?
+#### Si una página no es modificable en el padre ¿lo es en el hijo? En otras palabras: ¿se preserva, en el hijo, el flag de solo-lectura en las páginas copiadas?
 
 Si, no se preservan los flags, dado que se fuerzan los permisos `PTE_P|PTE_U|PTE_W` al duplicar las paginas.
 
-### Mostrar, con código en espacio de usuario, cómo podría dumbfork() verificar si una dirección en el padre es de solo lectura, de tal manera que pudiera pasar como tercer parámetro a duppage() un booleano llamado readonly que indicase si la página es modificable o no:
+#### Mostrar, con código en espacio de usuario, cómo podría dumbfork() verificar si una dirección en el padre es de solo lectura, de tal manera que pudiera pasar como tercer parámetro a duppage() un booleano llamado readonly que indicase si la página es modificable o no:
 
 ```
 envid_t dumbfork(void) {
@@ -134,7 +136,7 @@ envid_t dumbfork(void) {
 ```
 Ayuda: usar las variables globales uvpd y/o uvpt.
 
-### Supongamos que se desea actualizar el código de duppage() para tener en cuenta el argumento readonly: si este es verdadero, la página copiada no debe ser modificable en el hijo. Es fácil hacerlo realizando una última llamada a sys_page_map() para eliminar el flag PTE_W en el hijo, cuando corresponda:
+#### Supongamos que se desea actualizar el código de duppage() para tener en cuenta el argumento readonly: si este es verdadero, la página copiada no debe ser modificable en el hijo. Es fácil hacerlo realizando una última llamada a sys_page_map() para eliminar el flag PTE_W en el hijo, cuando corresponda:
 
 ```
 void duppage(envid_t dstenv, void *addr, bool readonly) {
@@ -150,11 +152,11 @@ void duppage(envid_t dstenv, void *addr, bool readonly) {
 }
 ```
 
-# Parte 3: Ejecución en paralelo (multi-core)
+## Parte 3: Ejecución en paralelo (multi-core)
 
-## multicore_init
+### multicore_init
 
-### ¿Qué código copia, y a dónde, la siguiente línea de la función boot_aps()?
+#### ¿Qué código copia, y a dónde, la siguiente línea de la función boot_aps()?
 
 `memmove(code, mpentry_start, mpentry_end - mpentry_start);`
 
@@ -163,7 +165,7 @@ Dicho código se encarga de activar el modo protegido de 32 bits.
 La dirección MPENTRY_PADDR cumple el requisito necesario para guardar instrucciones que se corran el modo real, que estar en los 2^16 bytes más bajos de la memoria física.
 
 
-### ¿Para qué se usa la variable global mpentry_kstack? ¿Qué ocurriría si el espacio para este stack se reservara en el archivo kern/mpentry.S, de manera similar a bootstack en el archivo kern/entry.S?
+#### ¿Para qué se usa la variable global mpentry_kstack? ¿Qué ocurriría si el espacio para este stack se reservara en el archivo kern/mpentry.S, de manera similar a bootstack en el archivo kern/entry.S?
 
 La variable mpentry_kstack es seteada por init.c  para indicarle a mpentry.S donde poner el stack pointer del CPU correspondiente.
 
@@ -171,7 +173,7 @@ Al haber muchos CPUs, cada uno tiene su stack del Kernel correspondiente, dado q
 Dado que kern/mpentry.S es el código que corre cada CPU al iniciar, si aquí se reservará espacio para el stack de manera similar a bootstack en el archivo kern/entry.S los stacks de los distintos CPUs se pisarían y sería imposible que cada uno tenga el suyo separado.
 
 
-### En el archivo kern/mpentry.S se puede leer:
+#### En el archivo kern/mpentry.S se puede leer:
 
 ```
  # We cannot use kern_pgdir yet because we are still
@@ -182,9 +184,9 @@ Dado que kern/mpentry.S es el código que corre cada CPU al iniciar, si aquí se
 
 Redondeando a 12 bits, el valor del %eip al ejecutar esa línea será 0x7000. Esto ocurre porque el archivo kern/mpentry.S arranca corriendo en modo real, por lo que necesita estar en direcciones bajas.
 
-# Parte 4: Comunicación entre procesos
+## Parte 4: Comunicación entre procesos
 
-## ipc_recv
+### ipc_recv
 
 - Un proceso podría intentar enviar el valor númerico -E_INVAL vía ipc_send(). ¿Cómo es posible distinguir si es un error, o no?
 
@@ -201,9 +203,9 @@ if (r < 0)
 
 Se puede distinguir ya que`src` sera el envid del proceso que envía el mensaje si es correcto o 0 si hay error.
 
-## ipc_try_send
+### ipc_try_send
 
-### cómo se podría implementar una función sys_ipc_send() (con los mismos parámetros que sys_ipc_try_send()) que sea bloqueante
+#### cómo se podría implementar una función sys_ipc_send() (con los mismos parámetros que sys_ipc_try_send()) que sea bloqueante
 
 
 
